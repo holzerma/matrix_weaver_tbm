@@ -1,0 +1,5 @@
+{
+  "name": "Matrix Weaver TBM Edition",
+  "description": "An interactive application to model and manage a matrix organization based on Apptio TBM principles. It allows for managing employees across value streams and functional chapters, and provides insightful dashboards for management.",
+  "requestFramePermissions": []
+}
