@@ -113,10 +113,10 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
         !formData.costPoolConsumption.some(c => c.costPoolId === cp.id)
     );
 
-    // FIX: Explicitly type the initial value for the reduce function to avoid type errors with the accumulator.
+    // FIX: Explicitly type the initial value for the reduce function and use generic for better inference to avoid type errors.
     const costsByTower = useMemo(() => {
         type CostsByTowerAcc = Record<string, { towerName: string, costs: CostAllocation[] }>;
-        return formData.costPoolConsumption.reduce((acc, cost) => {
+        return formData.costPoolConsumption.reduce<CostsByTowerAcc>((acc, cost) => {
             const pool = costPoolMap.get(cost.costPoolId);
             if (pool) {
                 const towerId = pool.defaultResourceTowerId;
@@ -127,7 +127,7 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                 acc[towerId].costs.push(cost);
             }
             return acc;
-        }, {} as CostsByTowerAcc);
+        }, {});
     }, [formData.costPoolConsumption, costPoolMap, resourceTowerMap]);
 
     const inputClasses = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm shadow-sm placeholder-slate-400 dark:text-slate-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500";
@@ -193,11 +193,12 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                     </div>
                     <div className="space-y-3 p-3 border border-slate-300 dark:border-slate-600 rounded-md max-h-60 overflow-y-auto">
                         {Object.keys(costsByTower).length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">No consumed costs. Click 'Add Cost' to begin.</p>}
-                        {Object.entries(costsByTower).map(([towerId, {towerName, costs}]) => (
+                        {/* FIX: Explicitly cast entry in Object.entries to any to avoid "property does not exist on type {}" error. */}
+                        {Object.entries(costsByTower).map(([towerId, {towerName, costs}]: [string, any]) => (
                             <div key={towerId}>
                                 <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">{towerName}</h4>
                                 <div className="pl-2 mt-1 space-y-1">
-                                    {costs.map(c => (
+                                    {(costs as CostAllocation[]).map(c => (
                                         <div key={c.costPoolId} className="flex justify-between items-center bg-slate-100 dark:bg-slate-700 p-2 rounded">
                                             <div>
                                                 <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{costPoolMap.get(c.costPoolId)?.name || 'Unknown Pool'}</p>

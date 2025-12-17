@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Competence } from '../types';
+import { Competence, CompetenceTeamType } from '../types';
 
 interface CompetenceFormProps {
     competence: Competence | null;
@@ -8,18 +8,30 @@ interface CompetenceFormProps {
     onCancel: () => void;
 }
 
+const TEAM_TYPES: CompetenceTeamType[] = ['Product Team', 'Crew', 'Enabling Team', 'Unassigned'];
+
 const CompetenceForm: React.FC<CompetenceFormProps> = ({ competence, onSave, onCancel }) => {
-    const [formData, setFormData] = useState<Omit<Competence, 'id'>>({ name: '', skill: '' });
+    const [formData, setFormData] = useState<Omit<Competence, 'id'>>({ 
+        name: '', 
+        skill: '',
+        teamType: 'Unassigned',
+        lineTeamName: ''
+    });
 
     useEffect(() => {
         if (competence) {
             setFormData({ ...competence });
         } else {
-            setFormData({ name: '', skill: '' });
+            setFormData({ 
+                name: '', 
+                skill: '',
+                teamType: 'Unassigned',
+                lineTeamName: ''
+            });
         }
     }, [competence]);
 
-    const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
         setFormData(prev => ({ ...prev, [name]: value }));
     };
@@ -38,13 +50,27 @@ const CompetenceForm: React.FC<CompetenceFormProps> = ({ competence, onSave, onC
 
     return (
         <form onSubmit={handleSubmit} className="space-y-6">
-            <div>
-                <label htmlFor="name" className={labelClasses}>Competence Name</label>
-                <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} className={inputClasses} required />
-            </div>
-            <div>
-                <label htmlFor="skill" className={labelClasses}>Core Skill</label>
-                <input type="text" name="skill" id="skill" value={formData.skill} onChange={handleChange} className={inputClasses} required />
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                    <label htmlFor="name" className={labelClasses}>Competence Name</label>
+                    <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} className={inputClasses} required />
+                </div>
+                <div>
+                    <label htmlFor="skill" className={labelClasses}>Core Skill</label>
+                    <input type="text" name="skill" id="skill" value={formData.skill} onChange={handleChange} className={inputClasses} required />
+                </div>
+                <div>
+                    <label htmlFor="teamType" className={labelClasses}>Team Type</label>
+                    <select name="teamType" id="teamType" value={formData.teamType} onChange={handleChange} className={inputClasses} required>
+                        {TEAM_TYPES.map(type => (
+                            <option key={type} value={type}>{type}</option>
+                        ))}
+                    </select>
+                </div>
+                <div>
+                    <label htmlFor="lineTeamName" className={labelClasses}>Current Line Team</label>
+                    <input type="text" name="lineTeamName" id="lineTeamName" value={formData.lineTeamName} onChange={handleChange} className={inputClasses} placeholder="e.g. Engineering Team A" />
+                </div>
             </div>
 
             <div className="flex justify-end space-x-4 pt-4">

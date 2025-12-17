@@ -452,10 +452,10 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
         return Object.values(costs);
     }, [members, competenceMap]);
 
-    // FIX: Explicitly type the initial value for the reduce function to avoid type errors with the accumulator.
+    // FIX: Explicitly type the initial value for the reduce function and use generic for better inference to avoid type errors.
     const costsByTower = useMemo(() => {
         type CostsByTowerAcc = Record<string, { towerName: string, tower: ResourceTower | undefined, costs: { costPoolId: string, annualCost: number }[] }>;
-        return valueStream.costPoolConsumption.reduce((acc, cost) => {
+        return valueStream.costPoolConsumption.reduce<CostsByTowerAcc>((acc, cost) => {
             const pool = costPoolMap.get(cost.costPoolId);
             if (pool) {
                 const towerId = pool.defaultResourceTowerId;
@@ -466,7 +466,7 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
                 acc[towerId].costs.push(cost);
             }
             return acc;
-        }, {} as CostsByTowerAcc);
+        }, {});
     }, [valueStream, costPoolMap, resourceTowerMap]);
 
     return (
@@ -552,17 +552,18 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
                  <Card>
                     <h3 className="text-xl font-bold mb-4 text-slate-800 dark:text-slate-100">Consumed Resources & Costs</h3>
                      <div className="max-h-80 overflow-y-auto pr-2 space-y-3">
-                        {Object.entries(costsByTower).map(([towerId, { tower, costs }]) => (
+                        {/* FIX: Explicitly cast the entry to [string, any] to fix property does not exist on type {} error. */}
+                        {Object.entries(costsByTower).map(([towerId, { tower, costs }]: [string, any]) => (
                             <div key={towerId}>
                                 <div className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                                      <div>
                                          <p className="font-semibold text-slate-800 dark:text-slate-200">{tower?.name || 'Unassigned'}</p>
                                          <p className="text-sm text-slate-500 dark:text-slate-400">{tower?.tower} / {tower?.domain}</p>
                                      </div>
-                                      <span className="font-medium text-green-600 dark:text-green-400">{formatCurrency(costs.reduce((s, c) => s + c.annualCost, 0))}</span>
+                                      <span className="font-medium text-green-600 dark:text-green-400">{formatCurrency(costs.reduce((s: number, c: { annualCost: number }) => s + c.annualCost, 0))}</span>
                                 </div>
                                 <div className="pl-4 mt-1 space-y-1">
-                                    {costs.map(c => (
+                                    {(costs as { costPoolId: string, annualCost: number }[]).map(c => (
                                         <div key={c.costPoolId} className="flex justify-between items-center">
                                             <p className="text-sm text-slate-600 dark:text-slate-300 pl-2 border-l-2 border-slate-300 dark:border-slate-600">
                                                 {costPoolMap.get(c.costPoolId)?.name || 'Unknown Pool'}

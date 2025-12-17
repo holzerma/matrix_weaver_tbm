@@ -246,13 +246,13 @@ export const initialValueStreams: ValueStream[] = [
 ];
 
 export const initialCompetences: Competence[] = [
-    { id: 'comp1', name: 'Frontend Engineering', skill: 'Web Development' },
-    { id: 'comp2', name: 'Product Management', skill: 'Agile & Scrum' },
-    { id: 'comp3', name: 'User Experience', skill: 'Design Thinking' },
-    { id: 'comp4', name: 'Infrastructure', skill: 'Cloud & SRE' },
-    { id: 'comp5', name: 'Backend Engineering', skill: 'APIs & Services' },
-    { id: 'comp6', name: 'Data Science', skill: 'Analytics & ML' },
-    { id: 'comp7', name: 'Marketing', skill: 'Digital & Content' },
-    { id: 'comp8', name: 'Sales', skill: 'Business Development' },
-    { id: 'comp9', name: 'Cybersecurity', skill: 'Security & Compliance' },
+    { id: 'comp1', name: 'Frontend Engineering', skill: 'Web Development', teamType: 'Enabling Team', lineTeamName: 'Web Excellence' },
+    { id: 'comp2', name: 'Product Management', skill: 'Agile & Scrum', teamType: 'Product Team', lineTeamName: 'Strategy Unit 1' },
+    { id: 'comp3', name: 'User Experience', skill: 'Design Thinking', teamType: 'Crew', lineTeamName: 'Creative Ops' },
+    { id: 'comp4', name: 'Infrastructure', skill: 'Cloud & SRE', teamType: 'Enabling Team', lineTeamName: 'Cloud Foundations' },
+    { id: 'comp5', name: 'Backend Engineering', skill: 'APIs & Services', teamType: 'Enabling Team', lineTeamName: 'System Core' },
+    { id: 'comp6', name: 'Data Science', skill: 'Analytics & ML', teamType: 'Crew', lineTeamName: 'Data Insights Lab' },
+    { id: 'comp7', name: 'Marketing', skill: 'Digital & Content', teamType: 'Unassigned', lineTeamName: 'Brand Outreach' },
+    { id: 'comp8', name: 'Sales', skill: 'Business Development', teamType: 'Unassigned', lineTeamName: 'Revenue Growth' },
+    { id: 'comp9', name: 'Cybersecurity', skill: 'Security & Compliance', teamType: 'Enabling Team', lineTeamName: 'Defensive Ops' },
 ];

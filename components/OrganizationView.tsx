@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useLayoutEffect, useEffect, useMemo, useCallback } from 'react';
-import { AppData, Employee, ValueStream, Competence, Service } from '../types';
+import { AppData, Employee, ValueStream, Competence, Service, CompetenceTeamType } from '../types';
 import Card from './common/Card';
 import UserStarIcon from './icons/UserStarIcon';
 import OrgChartIcon from './icons/OrgChartIcon';
@@ -9,6 +9,13 @@ type Position = { x: number; y: number; width: number; height: number };
 type Positions = Record<string, Position>;
 type Connection = { key: string; d: string; employeeId: string; vsId: string; competenceId: string };
 type Highlight = { type: 'vs' | 'competence' | null; id: string | null };
+
+const typeBadges: Record<CompetenceTeamType, string> = {
+    'Product Team': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+    'Crew': 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200',
+    'Enabling Team': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+    'Unassigned': 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300',
+};
 
 const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
     const { employees, competences, valueStreams, services } = data;
@@ -171,8 +178,16 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
                                         className={`w-72 !bg-white/80 dark:!bg-slate-800/80 backdrop-blur-sm transition-all duration-300 ${getCardClasses('competence', competence.id)}`}
                                         onMouseEnter={() => setHighlight({ type: 'competence', id: competence.id })}
                                     >
-                                        <h4 className="font-bold text-indigo-700 dark:text-indigo-400">{competence.name}</h4>
-                                        <p className="text-sm text-slate-500 dark:text-slate-400 mb-3">{competence.skill}</p>
+                                        <div className="flex justify-between items-start mb-1">
+                                            <h4 className="font-bold text-indigo-700 dark:text-indigo-400">{competence.name}</h4>
+                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeBadges[competence.teamType || 'Unassigned']}`}>
+                                                {competence.teamType || 'Unassigned'}
+                                            </span>
+                                        </div>
+                                        {competence.lineTeamName && (
+                                            <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 italic mb-1 uppercase tracking-tight">Line: {competence.lineTeamName}</p>
+                                        )}
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{competence.skill}</p>
                                         <div className="space-y-2">
                                             {employees.filter(e => e.competenceId === competence.id).map(emp => (
                                                 <div
