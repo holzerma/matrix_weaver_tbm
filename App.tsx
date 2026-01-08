@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
-import { initialEmployees, initialValueStreams, initialCompetences, initialCostPools, initialResourceTowers, initialSkills, initialServices, initialSolutionCategories, CATEGORY_TYPE_MAP } from './constants';
-import { Employee, ValueStream, Competence, CostPool, ResourceTower, AppData, Skill, Service, SolutionCategory, SolutionType } from './types';
+import { initialEmployees, initialValueStreams, initialCompetences, initialCostPools, initialResourceTowers, initialSkills, initialServices, initialSolutionCategories, initialSolutionTypes, initialFunctionalTeams, CATEGORY_TYPE_MAP } from './constants';
+import { Employee, ValueStream, Competence, CostPool, ResourceTower, AppData, Skill, Service, SolutionCategory, SolutionTypeDefinition, FunctionalTeam, CompetenceTeamType } from './types';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import EmployeeManagement from './components/EmployeeManagement';
@@ -18,8 +18,10 @@ import CompetencyMap from './components/CompetencyMap';
 import ServiceManagement from './components/ServiceManagement';
 import SolutionTaxonomyView from './components/SolutionTaxonomyView';
 import SolutionCategoryManagement from './components/SolutionCategoryManagement';
+import SolutionTypeManagement from './components/SolutionTypeManagement';
+import FunctionalTeamManagement from './components/FunctionalTeamManagement';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
 
 const App: React.FC = () => {
     const [view, setView] = useState<View>('dashboard');
@@ -31,8 +33,10 @@ const App: React.FC = () => {
     const [skills, setSkills] = useLocalStorage<Skill[]>('skills', initialSkills);
     const [services, setServices] = useLocalStorage<Service[]>('services', initialServices);
     const [solutionCategories, setSolutionCategories] = useLocalStorage<SolutionCategory[]>('solutionCategories', initialSolutionCategories);
+    const [solutionTypes, setSolutionTypes] = useLocalStorage<SolutionTypeDefinition[]>('solutionTypes', initialSolutionTypes);
+    const [functionalTeams, setFunctionalTeams] = useLocalStorage<FunctionalTeam[]>('functionalTeams', initialFunctionalTeams);
 
-    const appData: AppData = { employees, valueStreams, competences, costPools, resourceTowers, skills, services, solutionCategories };
+    const appData: AppData = { employees, valueStreams, competences, costPools, resourceTowers, skills, services, solutionCategories, solutionTypes, functionalTeams };
 
     const handleAddEmployee = (employee: Employee) => setEmployees(prev => [...prev, employee]);
     const handleUpdateEmployee = (updatedEmployee: Employee) => setEmployees(prev => prev.map(e => e.id === updatedEmployee.id ? updatedEmployee : e));
@@ -73,16 +77,61 @@ const App: React.FC = () => {
     };
     const handleDeleteSolutionCategory = (categoryId: string) => setSolutionCategories(prev => prev.filter(c => c.id !== categoryId));
 
+    const handleAddSolutionType = (type: SolutionTypeDefinition) => setSolutionTypes(prev => [...prev, type]);
+    const handleUpdateSolutionType = (updatedType: SolutionTypeDefinition) => {
+        const oldType = solutionTypes.find(t => t.id === updatedType.id);
+        setSolutionTypes(prev => prev.map(t => t.id === updatedType.id ? updatedType : t));
+        
+        // Cascade update if name changed
+        if (oldType && oldType.name !== updatedType.name) {
+            // Update Solution Categories that use this type
+            setSolutionCategories(prev => prev.map(c => c.type === oldType.name ? { ...c, type: updatedType.name } : c));
+            // Update Solutions (ValueStreams) that use this type
+            setValueStreams(prev => prev.map(vs => vs.solutionType === oldType.name ? { ...vs, solutionType: updatedType.name } : vs));
+        }
+    };
+    const handleDeleteSolutionType = (typeId: string) => setSolutionTypes(prev => prev.filter(t => t.id !== typeId));
+
+    const handleAddFunctionalTeam = (team: FunctionalTeam) => setFunctionalTeams(prev => [...prev, team]);
+    const handleUpdateFunctionalTeam = (updatedTeam: FunctionalTeam) => setFunctionalTeams(prev => prev.map(t => t.id === updatedTeam.id ? updatedTeam : t));
+    const handleDeleteFunctionalTeam = (teamId: string) => setFunctionalTeams(prev => prev.filter(t => t.id !== teamId));
+
     const handleImport = (data: AppData) => {
-        setEmployees(data.employees || []);
-        setValueStreams(data.valueStreams || []);
-        setCompetences(data.competences || []);
+        // Migration: Ensure employees have functionalTeamIds array if missing
+        const migratedEmployees = (data.employees || []).map(emp => ({
+            ...emp,
+            functionalTeamIds: emp.functionalTeamIds || []
+        }));
+        setEmployees(migratedEmployees);
+
+        const importedVS = data.valueStreams || [];
+        setValueStreams(importedVS);
+
+        // Migration: Map old Competence types to new ones
+        const typeMapping: Record<string, CompetenceTeamType> = {
+            'Product Team': 'Standard',
+            'Enabling Team': 'Enabling',
+            'Crew': 'Crew',
+            'Unassigned': 'Standard' // or 'Unassigned' depending on preference
+        };
+
+        const migratedCompetences = (data.competences || []).map(comp => {
+            // Cast to string to check for old values that might not match current Type definition
+            const currentType = comp.teamType as string;
+            if (typeMapping[currentType]) {
+                return { ...comp, teamType: typeMapping[currentType] };
+            }
+            return comp;
+        });
+        setCompetences(migratedCompetences);
+
         setCostPools(data.costPools || []);
         setResourceTowers(data.resourceTowers || []);
         setSkills(data.skills || []);
         setServices(data.services || []);
+        setFunctionalTeams(data.functionalTeams || []);
         
-        // Migration logic for old categories without 'type'
+        // Migration logic for Categories (old format missing type)
         let importedCategories = data.solutionCategories || initialSolutionCategories;
         importedCategories = importedCategories.map(cat => {
             if (!cat.type) {
@@ -95,6 +144,26 @@ const App: React.FC = () => {
             return cat;
         });
         setSolutionCategories(importedCategories);
+
+        // Backward Compatibility for Solution Types
+        if (!data.solutionTypes || data.solutionTypes.length === 0) {
+            const distinctTypes = new Set<string>();
+            importedVS.forEach(vs => { if(vs.solutionType) distinctTypes.add(vs.solutionType); });
+            importedCategories.forEach(c => { if(c.type) distinctTypes.add(c.type); });
+
+            const generatedTypes: SolutionTypeDefinition[] = Array.from(distinctTypes).map((name, index) => {
+                const defaultType = initialSolutionTypes.find(t => t.name === name);
+                return {
+                    id: defaultType?.id || `st_gen_${index}`,
+                    name: name,
+                    description: defaultType?.description || 'Imported Solution Type',
+                    colorTheme: defaultType?.colorTheme || 'slate'
+                };
+            });
+            setSolutionTypes(generatedTypes);
+        } else {
+            setSolutionTypes(data.solutionTypes);
+        }
         
         alert('Data imported successfully!');
     };
@@ -112,9 +181,22 @@ const App: React.FC = () => {
             case 'dashboard':
                 return <Dashboard data={appData} />;
             case 'employees':
-                return <EmployeeManagement employees={employees} competences={competences} valueStreams={valueStreams} skills={skills} onAddEmployee={handleAddEmployee} onUpdateEmployee={handleUpdateEmployee} onDeleteEmployee={handleDeleteEmployee} />;
+                return <EmployeeManagement employees={employees} competences={competences} valueStreams={valueStreams} functionalTeams={functionalTeams} skills={skills} onAddEmployee={handleAddEmployee} onUpdateEmployee={handleUpdateEmployee} onDeleteEmployee={handleDeleteEmployee} />;
+            case 'functionalTeams':
+                return <FunctionalTeamManagement teams={functionalTeams} employees={employees} onAddTeam={handleAddFunctionalTeam} onUpdateTeam={handleUpdateFunctionalTeam} onDeleteTeam={handleDeleteFunctionalTeam} />;
             case 'valueStreams':
-                return <ValueStreamManagement employees={employees} valueStreams={valueStreams} resourceTowers={resourceTowers} costPools={costPools} services={services} solutionCategories={solutionCategories} onAddValueStream={handleAddValueStream} onUpdateValueStream={handleUpdateValueStream} onDeleteValueStream={handleDeleteValueStream} />;
+                return <ValueStreamManagement 
+                    employees={employees} 
+                    valueStreams={valueStreams} 
+                    resourceTowers={resourceTowers} 
+                    costPools={costPools} 
+                    services={services} 
+                    solutionCategories={solutionCategories} 
+                    solutionTypes={solutionTypes} 
+                    onAddValueStream={handleAddValueStream} 
+                    onUpdateValueStream={handleUpdateValueStream} 
+                    onDeleteValueStream={handleDeleteValueStream} 
+                />;
             case 'competences':
                 return <CompetenceManagement employees={employees} competences={competences} onAddCompetence={handleAddCompetence} onUpdateCompetence={handleUpdateCompetence} onDeleteCompetence={handleDeleteCompetence} />;
             case 'costPools':
@@ -134,7 +216,22 @@ const App: React.FC = () => {
             case 'services':
                 return <ServiceManagement services={services} valueStreams={valueStreams} onAddService={handleAddService} onUpdateService={handleUpdateService} onDeleteService={handleDeleteService} />;
             case 'solutionCategories':
-                return <SolutionCategoryManagement categories={solutionCategories} valueStreams={valueStreams} onAddCategory={handleAddSolutionCategory} onUpdateCategory={handleUpdateSolutionCategory} onDeleteCategory={handleDeleteSolutionCategory} />;
+                return <SolutionCategoryManagement 
+                    categories={solutionCategories} 
+                    valueStreams={valueStreams} 
+                    solutionTypes={solutionTypes}
+                    onAddCategory={handleAddSolutionCategory} 
+                    onUpdateCategory={handleUpdateSolutionCategory} 
+                    onDeleteCategory={handleDeleteSolutionCategory} 
+                />;
+            case 'solutionTypes':
+                return <SolutionTypeManagement 
+                    solutionTypes={solutionTypes} 
+                    valueStreams={valueStreams}
+                    onAddType={handleAddSolutionType}
+                    onUpdateType={handleUpdateSolutionType}
+                    onDeleteType={handleDeleteSolutionType}
+                />;
             default:
                 return <Dashboard data={appData} />;
         }

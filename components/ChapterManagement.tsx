@@ -18,9 +18,9 @@ interface CompetenceManagementProps {
 }
 
 const typeBadges: Record<CompetenceTeamType, string> = {
-    'Product Team': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+    'Standard': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
     'Crew': 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200',
-    'Enabling Team': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+    'Enabling': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
     'Unassigned': 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300',
 };
 

@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState } from 'react';
-import { AppData, ValueStream, Service, SolutionType } from '../types';
+import { AppData, ValueStream, Service, SolutionType, SolutionTypeDefinition } from '../types';
 import Card from './common/Card';
 import SitemapIcon from './icons/SitemapIcon';
 import UsersIcon from './icons/UsersIcon';
@@ -11,18 +11,20 @@ interface SolutionTaxonomyViewProps {
 
 // Taxonomy node structure
 type TaxonomyNode = {
-    [key in SolutionType]?: {
+    [key: string]: {
         [category: string]: ValueStream[];
     };
 };
 
-const typeColors: { [key in SolutionType]: string } = {
-    'Business': 'bg-sky-100 dark:bg-sky-900/50 border-sky-300 dark:border-sky-700 text-sky-800 dark:text-sky-200',
-    'Workplace': 'bg-lime-100 dark:bg-lime-900/50 border-lime-300 dark:border-lime-700 text-lime-800 dark:text-lime-200',
-    'Infrastructure': 'bg-amber-100 dark:bg-amber-900/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200',
-    'Delivery': 'bg-rose-100 dark:bg-rose-900/50 border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200',
-    'Shared & Corporate': 'bg-slate-100 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200',
-    'Artificial Intelligence': 'bg-violet-100 dark:bg-violet-900/50 border-violet-300 dark:border-violet-700 text-violet-800 dark:text-violet-200',
+const colorClasses: Record<string, string> = {
+    sky: 'bg-sky-100 dark:bg-sky-900/50 border-sky-300 dark:border-sky-700 text-sky-800 dark:text-sky-200',
+    lime: 'bg-lime-100 dark:bg-lime-900/50 border-lime-300 dark:border-lime-700 text-lime-800 dark:text-lime-200',
+    amber: 'bg-amber-100 dark:bg-amber-900/50 border-amber-300 dark:border-amber-700 text-amber-800 dark:text-amber-200',
+    rose: 'bg-rose-100 dark:bg-rose-900/50 border-rose-300 dark:border-rose-700 text-rose-800 dark:text-rose-200',
+    slate: 'bg-slate-100 dark:bg-slate-700/50 border-slate-300 dark:border-slate-600 text-slate-800 dark:text-slate-200',
+    violet: 'bg-violet-100 dark:bg-violet-900/50 border-violet-300 dark:border-violet-700 text-violet-800 dark:text-violet-200',
+    indigo: 'bg-indigo-100 dark:bg-indigo-900/50 border-indigo-300 dark:border-indigo-700 text-indigo-800 dark:text-indigo-200',
+    emerald: 'bg-emerald-100 dark:bg-emerald-900/50 border-emerald-300 dark:border-emerald-700 text-emerald-800 dark:text-emerald-200',
 };
 
 const Tooltip: React.FC<{ item: ValueStream | Service | null, position: { top: number, left: number } }> = ({ item, position }) => {
@@ -40,10 +42,11 @@ const Tooltip: React.FC<{ item: ValueStream | Service | null, position: { top: n
 };
 
 const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => {
-    const { employees, valueStreams, services, solutionCategories } = data;
+    const { employees, valueStreams, services, solutionCategories, solutionTypes = [] } = data;
     const [hoveredItem, setHoveredItem] = useState<{ item: ValueStream | Service; position: { top: number; left: number } } | null>(null);
 
     const serviceMap = useMemo(() => new Map(services.map(s => [s.id, s])), [services]);
+    const solutionTypeMap = useMemo(() => new Map(solutionTypes.map(t => [t.name, t])), [solutionTypes]);
 
     const stats = useMemo(() => {
         // Headcount Sets (Unique People)
@@ -125,7 +128,12 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
     const taxonomy = useMemo(() => {
         const result: TaxonomyNode = {};
         
-        // 1. Initialize structure based on defined categories
+        // 1. Initialize structure based on defined solution types
+        solutionTypes.forEach(typeDef => {
+            result[typeDef.name] = {};
+        });
+
+        // 2. Add empty categories that exist in definition
         solutionCategories.forEach(cat => {
             if (cat.type) {
                 if (!result[cat.type]) {
@@ -137,7 +145,7 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
             }
         });
 
-        // 2. Populate with Value Streams
+        // 3. Populate with Value Streams
         valueStreams.forEach(vs => {
             const { solutionType, solutionCategory } = vs;
             if (!result[solutionType]) {
@@ -150,7 +158,7 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
         });
         
         return result;
-    }, [valueStreams, solutionCategories]);
+    }, [valueStreams, solutionCategories, solutionTypes]);
 
     const handleMouseEnter = (item: ValueStream | Service, e: React.MouseEvent) => {
         setHoveredItem({ item, position: { top: e.clientY, left: e.clientX } });
@@ -186,9 +194,11 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
                 {Object.entries(taxonomy).map(([type, categories]) => {
                     const typeStats = stats.getTypeStats(type);
                     const isSplit = typeStats.assignments > typeStats.headcount;
+                    const typeDef = solutionTypeMap.get(type);
+                    const colorClass = typeDef ? colorClasses[typeDef.colorTheme] : colorClasses['slate'];
                     
                     return (
-                        <div key={type} className={`p-4 border-l-4 ${typeColors[type as SolutionType] || 'bg-gray-100 border-gray-300'}`}>
+                        <div key={type} className={`p-4 border-l-4 ${colorClass || 'bg-gray-100 border-gray-300'}`}>
                             <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
                                 {type}
                                 <div 
@@ -209,6 +219,9 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
                                     </span>
                                 </div>
                             </h3>
+                            {typeDef?.description && (
+                                <p className="text-sm text-slate-600 dark:text-slate-400 mt-1 mb-2 italic">{typeDef.description}</p>
+                            )}
                             <div className="mt-4 space-y-4">
                                 {Object.entries(categories).sort((a,b) => a[0].localeCompare(b[0])).map(([category, solutions]) => {
                                     const catStats = stats.getCategoryStats(type, category);

@@ -1,7 +1,7 @@
 
-import { Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service, SolutionType, SolutionCategory } from './types';
+import { Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service, SolutionType, SolutionCategory, SolutionTypeDefinition, FunctionalTeam } from './types';
 
-export const APP_VERSION = '1.5.5';
+export const APP_VERSION = '1.7.0';
 
 export const SKILL_CATEGORIES = [
     'Frontend Development',
@@ -16,10 +16,20 @@ export const SKILL_CATEGORIES = [
     'General',
 ];
 
-export const SOLUTION_TYPES: SolutionType[] = ['Business', 'Workplace', 'Infrastructure', 'Delivery', 'Shared & Corporate', 'Artificial Intelligence'];
+// Replaced simple array with rich object definitions
+export const initialSolutionTypes: SolutionTypeDefinition[] = [
+    { id: 'st_biz', name: 'Business', description: 'Solutions directly consumed by business units to drive revenue or operations.', colorTheme: 'sky' },
+    { id: 'st_wkp', name: 'Workplace', description: 'End-user computing, collaboration, and productivity tools.', colorTheme: 'lime' },
+    { id: 'st_inf', name: 'Infrastructure', description: 'Core technical foundations like compute, storage, and network.', colorTheme: 'amber' },
+    { id: 'st_del', name: 'Delivery', description: 'Tools and services that enable the delivery of technology (DevOps, PMO).', colorTheme: 'rose' },
+    { id: 'st_shr', name: 'Shared & Corporate', description: 'Cross-functional administrative and support functions.', colorTheme: 'slate' },
+    { id: 'st_ai', name: 'Artificial Intelligence', description: 'AI, ML, and GenAI capabilities.', colorTheme: 'violet' }
+];
+
+export const SOLUTION_TYPES: string[] = initialSolutionTypes.map(t => t.name);
 
 // TBM Taxonomy Structure for initialization and migration
-export const TBM_TAXONOMY: Record<SolutionType, string[]> = {
+export const TBM_TAXONOMY: Record<string, string[]> = {
     'Business': ['Product Management', 'Sales & Marketing', 'Manufacturing & Delivery', 'Customer Service'],
     'Workplace': ['Client Computing', 'Communication & Collaboration', 'Connectivity'],
     'Infrastructure': ['Compute', 'Data Center', 'Data', 'Network', 'Storage'],
@@ -89,27 +99,34 @@ export const initialSkills: Skill[] = [
     { id: 'skill33', name: 'Kanban', category: 'Product Management' },
 ];
 
+export const initialFunctionalTeams: FunctionalTeam[] = [
+    { id: 'ft_1', name: 'Mobile Payments Squad', description: 'Focused on iOS and Android payment integrations.', type: 'Product', operatingModel: 'Scrum' },
+    { id: 'ft_2', name: 'Core Infrastructure Crew', description: 'Maintains underlying Kubernetes clusters and networking.', type: 'Service', operatingModel: 'Kanban' },
+    { id: 'ft_3', name: 'Data Migration Project', description: 'Temporary team for legacy DB migration.', type: 'Service', operatingModel: 'Project' },
+    { id: 'ft_4', name: 'AI Research Lab', description: 'Experimental team for GenAI applications.', type: 'Product', operatingModel: 'Scrum' }
+];
+
 export const initialEmployees: Employee[] = [
-    { id: 'emp1', name: 'Alice Johnson', role: 'Software Engineer', salary: 90000, competenceId: 'comp1', valueStreamIds: ['vs_biz_pm_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill1', proficiency: 4 }, { skillId: 'skill4', proficiency: 3 }, { skillId: 'skill23', proficiency: 4 }] },
-    { id: 'emp2', name: 'Bob Williams', role: 'Product Manager', salary: 110000, competenceId: 'comp2', valueStreamIds: ['vs_biz_pm_1', 'vs_biz_pm_2'], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill10', proficiency: 5 }, { skillId: 'skill12', proficiency: 4 }, { skillId: 'skill33', proficiency: 3 }] },
-    { id: 'emp3', name: 'Charlie Brown', role: 'UX Designer', salary: 85000, competenceId: 'comp3', valueStreamIds: ['vs_biz_pm_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill7', proficiency: 5 }, { skillId: 'skill9', proficiency: 4 }] },
-    { id: 'emp4', name: 'Diana Miller', role: 'QA Engineer', salary: 75000, competenceId: 'comp1', valueStreamIds: ['vs_del_dev_4'], employeeType: 'external', isManager: false, skills: [{ skillId: 'skill1', proficiency: 2 }, { skillId: 'skill10', proficiency: 3 }] },
-    { id: 'emp5', name: 'Ethan Davis', role: 'DevOps Engineer', salary: 105000, competenceId: 'comp4', valueStreamIds: ['vs_inf_cmp_4', 'vs_del_sp_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill13', proficiency: 4 }, { skillId: 'skill14', proficiency: 5 }, { skillId: 'skill15', proficiency: 3 }, { skillId: 'skill26', proficiency: 4 }] },
-    { id: 'emp6', name: 'Fiona Garcia', role: 'Senior Consultant', salary: 140000, competenceId: 'comp2', valueStreamIds: ['vs_del_sp_3'], employeeType: 'external', isManager: true, skills: [{ skillId: 'skill12', proficiency: 5 }] },
-    { id: 'emp7', name: 'George Harris', role: 'Backend Engineer', salary: 95000, competenceId: 'comp5', valueStreamIds: ['vs_biz_pm_2'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill5', proficiency: 4 }, { skillId: 'skill6', proficiency: 3 }, { skillId: 'skill24', proficiency: 2 }] },
-    { id: 'emp8', name: 'Hannah Clark', role: 'Data Scientist', salary: 120000, competenceId: 'comp6', valueStreamIds: ['vs_ai_prd_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill16', proficiency: 5 }, { skillId: 'skill17', proficiency: 3 }, { skillId: 'skill29', proficiency: 4 }] },
-    { id: 'emp9', name: 'Ian Wright', role: 'Senior Backend Engineer', salary: 125000, competenceId: 'comp5', valueStreamIds: ['vs_inf_cmp_2', 'vs_del_dev_2'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill24', proficiency: 5 }, { skillId: 'skill4', proficiency: 3 }, { skillId: 'skill6', proficiency: 2 }] },
-    { id: 'emp10', name: 'Jane Doe', role: 'Security Analyst', salary: 98000, competenceId: 'comp9', valueStreamIds: ['vs_sc_fin_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill31', proficiency: 4 }, { skillId: 'skill32', proficiency: 3 }] },
-    { id: 'emp11', name: 'Kevin Moore', role: 'Cloud Architect', salary: 150000, competenceId: 'comp4', valueStreamIds: ['vs_del_sp_1'], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill13', proficiency: 5 }, { skillId: 'skill28', proficiency: 4 }, { skillId: 'skill15', proficiency: 4 }] },
-    { id: 'emp12', name: 'Laura Taylor', role: 'Frontend Developer', salary: 88000, competenceId: 'comp1', valueStreamIds: ['vs_wkp_cc_4'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill2', proficiency: 4 }, { skillId: 'skill23', proficiency: 3 }] },
-    { id: 'emp13', name: 'Michael Scott', role: 'Engineering Manager', salary: 160000, competenceId: 'comp5', valueStreamIds: [], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill10', proficiency: 5 }, { skillId: 'skill22', proficiency: 4 }] },
-    { id: 'emp14', name: 'Nancy Green', role: 'Scrum Master', salary: 92000, competenceId: 'comp2', valueStreamIds: ['vs_biz_pm_1', 'vs_biz_pm_2'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill10', proficiency: 5 }, { skillId: 'skill11', proficiency: 5 }] },
-    { id: 'emp15', name: 'Oliver King', role: 'Data Analyst', salary: 78000, competenceId: 'comp6', valueStreamIds: ['vs_sc_fin_1'], employeeType: 'external', isManager: false, skills: [{ skillId: 'skill16', proficiency: 4 }, { skillId: 'skill30', proficiency: 4 }] },
-    { id: 'emp16', name: 'Penelope Hill', role: 'UI Designer', salary: 82000, competenceId: 'comp3', valueStreamIds: ['vs_wkp_cc_4'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill7', proficiency: 4 }, { skillId: 'skill8', proficiency: 3 }] },
-    { id: 'emp17', name: 'Quincy Adams', role: 'Site Reliability Engineer', salary: 115000, competenceId: 'comp4', valueStreamIds: ['vs_inf_cmp_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill15', proficiency: 4 }, { skillId: 'skill27', proficiency: 4 }, { skillId: 'skill5', proficiency: 3 }] },
-    { id: 'emp18', name: 'Rachel Zane', role: 'Marketing Specialist', salary: 72000, competenceId: 'comp7', valueStreamIds: ['vs_biz_pm_2'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill19', proficiency: 4 }, { skillId: 'skill20', proficiency: 3 }] },
-    { id: 'emp19', name: 'Steve Rogers', role: 'Sales Executive', salary: 100000, competenceId: 'comp8', valueStreamIds: ['vs_biz_pm_2'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill21', proficiency: 5 }, { skillId: 'skill22', proficiency: 5 }] },
-    { id: 'emp20', name: 'Tony Stark', role: 'Principal Engineer', salary: 180000, competenceId: 'comp5', valueStreamIds: ['vs_ai_gen_1'], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill5', proficiency: 5 }, { skillId: 'skill17', proficiency: 5 }, { skillId: 'skill25', proficiency: 4 }] },
+    { id: 'emp1', name: 'Alice Johnson', role: 'Software Engineer', salary: 90000, competenceId: 'comp1', valueStreamIds: ['vs_biz_pm_1'], functionalTeamIds: ['ft_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill1', proficiency: 4 }, { skillId: 'skill4', proficiency: 3 }, { skillId: 'skill23', proficiency: 4 }] },
+    { id: 'emp2', name: 'Bob Williams', role: 'Product Manager', salary: 110000, competenceId: 'comp2', valueStreamIds: ['vs_biz_pm_1', 'vs_biz_pm_2'], functionalTeamIds: ['ft_1'], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill10', proficiency: 5 }, { skillId: 'skill12', proficiency: 4 }, { skillId: 'skill33', proficiency: 3 }] },
+    { id: 'emp3', name: 'Charlie Brown', role: 'UX Designer', salary: 85000, competenceId: 'comp3', valueStreamIds: ['vs_biz_pm_1'], functionalTeamIds: ['ft_1'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill7', proficiency: 5 }, { skillId: 'skill9', proficiency: 4 }] },
+    { id: 'emp4', name: 'Diana Miller', role: 'QA Engineer', salary: 75000, competenceId: 'comp1', valueStreamIds: ['vs_del_dev_4'], functionalTeamIds: ['ft_1'], employeeType: 'external', isManager: false, skills: [{ skillId: 'skill1', proficiency: 2 }, { skillId: 'skill10', proficiency: 3 }] },
+    { id: 'emp5', name: 'Ethan Davis', role: 'DevOps Engineer', salary: 105000, competenceId: 'comp4', valueStreamIds: ['vs_inf_cmp_4', 'vs_del_sp_1'], functionalTeamIds: ['ft_2'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill13', proficiency: 4 }, { skillId: 'skill14', proficiency: 5 }, { skillId: 'skill15', proficiency: 3 }, { skillId: 'skill26', proficiency: 4 }] },
+    { id: 'emp6', name: 'Fiona Garcia', role: 'Senior Consultant', salary: 140000, competenceId: 'comp2', valueStreamIds: ['vs_del_sp_3'], functionalTeamIds: [], employeeType: 'external', isManager: true, skills: [{ skillId: 'skill12', proficiency: 5 }] },
+    { id: 'emp7', name: 'George Harris', role: 'Backend Engineer', salary: 95000, competenceId: 'comp5', valueStreamIds: ['vs_biz_pm_2'], functionalTeamIds: ['ft_3'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill5', proficiency: 4 }, { skillId: 'skill6', proficiency: 3 }, { skillId: 'skill24', proficiency: 2 }] },
+    { id: 'emp8', name: 'Hannah Clark', role: 'Data Scientist', salary: 120000, competenceId: 'comp6', valueStreamIds: ['vs_ai_prd_1'], functionalTeamIds: ['ft_4'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill16', proficiency: 5 }, { skillId: 'skill17', proficiency: 3 }, { skillId: 'skill29', proficiency: 4 }] },
+    { id: 'emp9', name: 'Ian Wright', role: 'Senior Backend Engineer', salary: 125000, competenceId: 'comp5', valueStreamIds: ['vs_inf_cmp_2', 'vs_del_dev_2'], functionalTeamIds: ['ft_3'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill24', proficiency: 5 }, { skillId: 'skill4', proficiency: 3 }, { skillId: 'skill6', proficiency: 2 }] },
+    { id: 'emp10', name: 'Jane Doe', role: 'Security Analyst', salary: 98000, competenceId: 'comp9', valueStreamIds: ['vs_sc_fin_1'], functionalTeamIds: [], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill31', proficiency: 4 }, { skillId: 'skill32', proficiency: 3 }] },
+    { id: 'emp11', name: 'Kevin Moore', role: 'Cloud Architect', salary: 150000, competenceId: 'comp4', valueStreamIds: ['vs_del_sp_1'], functionalTeamIds: ['ft_2'], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill13', proficiency: 5 }, { skillId: 'skill28', proficiency: 4 }, { skillId: 'skill15', proficiency: 4 }] },
+    { id: 'emp12', name: 'Laura Taylor', role: 'Frontend Developer', salary: 88000, competenceId: 'comp1', valueStreamIds: ['vs_wkp_cc_4'], functionalTeamIds: [], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill2', proficiency: 4 }, { skillId: 'skill23', proficiency: 3 }] },
+    { id: 'emp13', name: 'Michael Scott', role: 'Engineering Manager', salary: 160000, competenceId: 'comp5', valueStreamIds: [], functionalTeamIds: ['ft_2', 'ft_3'], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill10', proficiency: 5 }, { skillId: 'skill22', proficiency: 4 }] },
+    { id: 'emp14', name: 'Nancy Green', role: 'Scrum Master', salary: 92000, competenceId: 'comp2', valueStreamIds: ['vs_biz_pm_1', 'vs_biz_pm_2'], functionalTeamIds: ['ft_1', 'ft_4'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill10', proficiency: 5 }, { skillId: 'skill11', proficiency: 5 }] },
+    { id: 'emp15', name: 'Oliver King', role: 'Data Analyst', salary: 78000, competenceId: 'comp6', valueStreamIds: ['vs_sc_fin_1'], functionalTeamIds: [], employeeType: 'external', isManager: false, skills: [{ skillId: 'skill16', proficiency: 4 }, { skillId: 'skill30', proficiency: 4 }] },
+    { id: 'emp16', name: 'Penelope Hill', role: 'UI Designer', salary: 82000, competenceId: 'comp3', valueStreamIds: ['vs_wkp_cc_4'], functionalTeamIds: [], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill7', proficiency: 4 }, { skillId: 'skill8', proficiency: 3 }] },
+    { id: 'emp17', name: 'Quincy Adams', role: 'Site Reliability Engineer', salary: 115000, competenceId: 'comp4', valueStreamIds: ['vs_inf_cmp_1'], functionalTeamIds: ['ft_2'], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill15', proficiency: 4 }, { skillId: 'skill27', proficiency: 4 }, { skillId: 'skill5', proficiency: 3 }] },
+    { id: 'emp18', name: 'Rachel Zane', role: 'Marketing Specialist', salary: 72000, competenceId: 'comp7', valueStreamIds: ['vs_biz_pm_2'], functionalTeamIds: [], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill19', proficiency: 4 }, { skillId: 'skill20', proficiency: 3 }] },
+    { id: 'emp19', name: 'Steve Rogers', role: 'Sales Executive', salary: 100000, competenceId: 'comp8', valueStreamIds: ['vs_biz_pm_2'], functionalTeamIds: [], employeeType: 'internal', isManager: false, skills: [{ skillId: 'skill21', proficiency: 5 }, { skillId: 'skill22', proficiency: 5 }] },
+    { id: 'emp20', name: 'Tony Stark', role: 'Principal Engineer', salary: 180000, competenceId: 'comp5', valueStreamIds: ['vs_ai_gen_1'], functionalTeamIds: ['ft_4'], employeeType: 'internal', isManager: true, skills: [{ skillId: 'skill5', proficiency: 5 }, { skillId: 'skill17', proficiency: 5 }, { skillId: 'skill25', proficiency: 4 }] },
 ];
 
 // TBM 5.0.1 Resource Towers (Pages 14-20)
@@ -266,13 +283,13 @@ export const initialValueStreams: ValueStream[] = [
 ];
 
 export const initialCompetences: Competence[] = [
-    { id: 'comp1', name: 'Frontend Engineering', skill: 'Web Development', teamType: 'Enabling Team', lineTeamName: 'Web Excellence' },
-    { id: 'comp2', name: 'Product Management', skill: 'Agile & Scrum', teamType: 'Product Team', lineTeamName: 'Strategy Unit 1' },
+    { id: 'comp1', name: 'Frontend Engineering', skill: 'Web Development', teamType: 'Enabling', lineTeamName: 'Web Excellence' },
+    { id: 'comp2', name: 'Product Management', skill: 'Agile & Scrum', teamType: 'Standard', lineTeamName: 'Strategy Unit 1' },
     { id: 'comp3', name: 'User Experience', skill: 'Design Thinking', teamType: 'Crew', lineTeamName: 'Creative Ops' },
-    { id: 'comp4', name: 'Infrastructure', skill: 'Cloud & SRE', teamType: 'Enabling Team', lineTeamName: 'Cloud Foundations' },
-    { id: 'comp5', name: 'Backend Engineering', skill: 'APIs & Services', teamType: 'Enabling Team', lineTeamName: 'System Core' },
+    { id: 'comp4', name: 'Infrastructure', skill: 'Cloud & SRE', teamType: 'Enabling', lineTeamName: 'Cloud Foundations' },
+    { id: 'comp5', name: 'Backend Engineering', skill: 'APIs & Services', teamType: 'Enabling', lineTeamName: 'System Core' },
     { id: 'comp6', name: 'Data Science', skill: 'Analytics & ML', teamType: 'Crew', lineTeamName: 'Data Insights Lab' },
     { id: 'comp7', name: 'Marketing', skill: 'Digital & Content', teamType: 'Unassigned', lineTeamName: 'Brand Outreach' },
     { id: 'comp8', name: 'Sales', skill: 'Business Development', teamType: 'Unassigned', lineTeamName: 'Revenue Growth' },
-    { id: 'comp9', name: 'Cybersecurity', skill: 'Security & Compliance', teamType: 'Enabling Team', lineTeamName: 'Defensive Ops' },
+    { id: 'comp9', name: 'Cybersecurity', skill: 'Security & Compliance', teamType: 'Enabling', lineTeamName: 'Defensive Ops' },
 ];

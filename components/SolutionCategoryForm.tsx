@@ -1,28 +1,30 @@
 
 import React, { useState, useEffect } from 'react';
-import { SolutionCategory, SolutionType } from '../types';
-import { SOLUTION_TYPES } from '../constants';
+import { SolutionCategory, SolutionTypeDefinition, SolutionType } from '../types';
 
 interface SolutionCategoryFormProps {
     category: SolutionCategory | null;
+    solutionTypes?: SolutionTypeDefinition[];
     onSave: (category: SolutionCategory) => void;
     onCancel: () => void;
 }
 
-const SolutionCategoryForm: React.FC<SolutionCategoryFormProps> = ({ category, onSave, onCancel }) => {
-    const [formData, setFormData] = useState({ name: '', description: '', type: 'Business' as SolutionType });
+const SolutionCategoryForm: React.FC<SolutionCategoryFormProps> = ({ category, solutionTypes = [], onSave, onCancel }) => {
+    // Default to first available type or Business if empty
+    const defaultType = solutionTypes.length > 0 ? solutionTypes[0].name : 'Business';
+    const [formData, setFormData] = useState({ name: '', description: '', type: defaultType as SolutionType });
 
     useEffect(() => {
         if (category) {
             setFormData({ 
                 name: category.name, 
                 description: category.description,
-                type: category.type || 'Business' // Default for legacy data
+                type: category.type || defaultType 
             });
         } else {
-            setFormData({ name: '', description: '', type: 'Business' });
+            setFormData({ name: '', description: '', type: defaultType });
         }
-    }, [category]);
+    }, [category, defaultType]);
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -53,7 +55,7 @@ const SolutionCategoryForm: React.FC<SolutionCategoryFormProps> = ({ category, o
                 <div>
                     <label htmlFor="type" className={labelClasses}>Parent Type</label>
                     <select name="type" id="type" value={formData.type} onChange={handleChange} className={inputClasses} required>
-                        {SOLUTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        {solutionTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                     </select>
                 </div>
             </div>

@@ -8,7 +8,8 @@ interface CompetenceFormProps {
     onCancel: () => void;
 }
 
-const TEAM_TYPES: CompetenceTeamType[] = ['Product Team', 'Crew', 'Enabling Team', 'Unassigned'];
+// Updated Team Types
+const TEAM_TYPES: CompetenceTeamType[] = ['Enabling', 'Crew', 'Standard', 'Unassigned'];
 
 const CompetenceForm: React.FC<CompetenceFormProps> = ({ competence, onSave, onCancel }) => {
     const [formData, setFormData] = useState<Omit<Competence, 'id'>>({ 

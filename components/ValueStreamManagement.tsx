@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, ValueStream, ResourceTower, CostPool, Service, SolutionCategory } from '../types';
-import { SOLUTION_TYPES } from '../constants';
+import { Employee, ValueStream, ResourceTower, CostPool, Service, SolutionCategory, SolutionTypeDefinition } from '../types';
 import Modal from './common/Modal';
 import Card from './common/Card';
 import PlusIcon from './icons/PlusIcon';
@@ -16,13 +15,14 @@ interface ValueStreamManagementProps {
     resourceTowers: ResourceTower[];
     costPools: CostPool[];
     services: Service[];
-    solutionCategories?: SolutionCategory[]; // Made optional to prevent breaking change if not passed immediately, though typically required
+    solutionCategories?: SolutionCategory[]; 
+    solutionTypes?: SolutionTypeDefinition[];
     onAddValueStream: (vs: ValueStream) => void;
     onUpdateValueStream: (vs: ValueStream) => void;
     onDeleteValueStream: (vsId: string) => void;
 }
 
-const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees, valueStreams, resourceTowers, costPools, services, solutionCategories = [], onAddValueStream, onUpdateValueStream, onDeleteValueStream }) => {
+const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees, valueStreams, resourceTowers, costPools, services, solutionCategories = [], solutionTypes = [], onAddValueStream, onUpdateValueStream, onDeleteValueStream }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVs, setEditingVs] = useState<ValueStream | null>(null);
 
@@ -188,8 +188,8 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
                             className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
                         >
                             <option value="all">All Types</option>
-                            {SOLUTION_TYPES.map(type => (
-                                <option key={type} value={type}>{type}</option>
+                            {solutionTypes.map(type => (
+                                <option key={type.id} value={type.name}>{type.name}</option>
                             ))}
                         </select>
                     </div>
@@ -296,7 +296,7 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
             </Card>
 
             <Modal isOpen={isModalOpen} onClose={handleCancel} title={editingVs ? 'Edit Solution' : 'Add New Solution'}>
-                <ValueStreamForm valueStream={editingVs} resourceTowers={resourceTowers} costPools={costPools} services={services} solutionCategories={solutionCategories} onSave={handleSave} onCancel={handleCancel} />
+                <ValueStreamForm valueStream={editingVs} resourceTowers={resourceTowers} costPools={costPools} services={services} solutionCategories={solutionCategories} solutionTypes={solutionTypes} onSave={handleSave} onCancel={handleCancel} />
             </Modal>
         </div>
     );

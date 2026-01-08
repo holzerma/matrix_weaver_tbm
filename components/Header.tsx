@@ -19,8 +19,9 @@ import MapIcon from './icons/MapIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
 import SitemapIcon from './icons/SitemapIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
+import UserGroupIcon from './icons/UserGroupIcon';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
 
 interface HeaderProps {
     currentView: View;
@@ -55,6 +56,7 @@ const navItems: NavItem[] = [
     {
         id: 'people', label: 'People', icon: <UsersIcon />, children: [
             { id: 'employees', label: 'Employees', icon: <UsersIcon /> },
+            { id: 'functionalTeams', label: 'Functional Teams', icon: <UserGroupIcon /> },
             { id: 'competences', label: 'Competence Teams / Line', icon: <BookOpenIcon /> },
             { id: 'skills', label: 'Skills', icon: <SkillsIcon /> },
             { id: 'competencyMap', label: 'Competency Map', icon: <MapIcon /> },
@@ -64,6 +66,7 @@ const navItems: NavItem[] = [
         id: 'tbm', label: 'TBM', icon: <TowerIcon />, children: [
             { id: 'resourceTowers', label: 'Resource Towers', icon: <ResourceTowerIcon /> },
             { id: 'costPools', label: 'Cost Pools', icon: <TowerIcon /> },
+            { id: 'solutionTypes', label: 'Solution Types', icon: <SitemapIcon /> },
             { id: 'solutionCategories', label: 'Solution Categories', icon: <SitemapIcon /> },
         ]
     },
@@ -347,6 +350,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                             <li><strong className="text-indigo-600 dark:text-indigo-400">Solutions (Value Streams):</strong> These are the products or services your organization delivers to its consumers. They are the focal point for measuring value.</li>
                             <li><strong className="text-indigo-600 dark:text-indigo-400">Services (Offerings):</strong> These are the specific, concrete activities that a Solution provides. A single Service can be shared and provided by multiple Solutions.</li>
                             <li><strong className="text-sky-600 dark:text-sky-400">Employees & Competences:</strong> Employees are the people doing the work. Competences are their functional homes or centers of excellence (e.g., 'Backend Engineering').</li>
+                            <li><strong className="text-pink-600 dark:text-pink-400">Functional Teams:</strong> Operational squads where work happens (e.g., 'Mobile Squad A'). Employees can belong to multiple Functional Teams.</li>
                             <li><strong className="text-amber-600 dark:text-amber-400">Cost Pools & Resource Towers:</strong> This is how costs are modeled. Cost Pools are financial categories (like 'Software Licenses'). Resource Towers are the IT components they map to (like 'Application').</li>
                         </ul>
                     </div>

@@ -10,6 +10,14 @@ export interface Skill {
     category: string;
 }
 
+export interface FunctionalTeam {
+    id: string;
+    name: string;
+    description: string;
+    type: 'Product' | 'Service';
+    operatingModel: 'Scrum' | 'Kanban' | 'Project' | 'IT-Demand' | 'Other';
+}
+
 export interface Employee {
     id: string;
     name: string;
@@ -17,6 +25,7 @@ export interface Employee {
     salary: number;
     competenceId: string;
     valueStreamIds: string[];
+    functionalTeamIds: string[]; // New field
     employeeType: 'internal' | 'external';
     isManager: boolean;
     skills: EmployeeSkill[];
@@ -41,8 +50,16 @@ export interface CostPool {
     defaultResourceTowerId: string;
 }
 
-export type SolutionType = 'Business' | 'Workplace' | 'Infrastructure' | 'Delivery' | 'Shared & Corporate' | 'Artificial Intelligence';
+// Relaxed from union type to string to support dynamic user creation
+export type SolutionType = string;
 export type SolutionClassification = 'Product' | 'Service';
+
+export interface SolutionTypeDefinition {
+    id: string;
+    name: string;
+    description: string;
+    colorTheme: 'sky' | 'lime' | 'amber' | 'rose' | 'slate' | 'violet' | 'indigo' | 'emerald';
+}
 
 export interface Service {
     id: string;
@@ -68,7 +85,8 @@ export interface ValueStream {
     serviceIds: string[];
 }
 
-export type CompetenceTeamType = 'Product Team' | 'Crew' | 'Enabling Team' | 'Unassigned';
+// Updated types
+export type CompetenceTeamType = 'Enabling' | 'Crew' | 'Standard' | 'Unassigned';
 
 export interface Competence {
     id: string;
@@ -86,5 +104,7 @@ export interface AppData {
     resourceTowers: ResourceTower[];
     skills: Skill[];
     services: Service[];
+    functionalTeams: FunctionalTeam[]; // New root collection
     solutionCategories: SolutionCategory[];
+    solutionTypes?: SolutionTypeDefinition[]; 
 }

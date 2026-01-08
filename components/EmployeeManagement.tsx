@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, Competence, ValueStream, Skill } from '../types';
+import { Employee, Competence, ValueStream, Skill, FunctionalTeam } from '../types';
 import Modal from './common/Modal';
 import Card from './common/Card';
 import PlusIcon from './icons/PlusIcon';
@@ -14,6 +14,7 @@ interface EmployeeManagementProps {
     employees: Employee[];
     competences: Competence[];
     valueStreams: ValueStream[];
+    functionalTeams?: FunctionalTeam[];
     skills: Skill[];
     onAddEmployee: (employee: Employee) => void;
     onUpdateEmployee: (employee: Employee) => void;
@@ -33,7 +34,7 @@ const typeBadges: { [key: string]: string } = {
     external: 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
 };
 
-const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, competences, valueStreams, skills, onAddEmployee, onUpdateEmployee, onDeleteEmployee }) => {
+const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, competences, valueStreams, functionalTeams = [], skills, onAddEmployee, onUpdateEmployee, onDeleteEmployee }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingEmployee, setEditingEmployee] = useState<Employee | null>(null);
     
@@ -46,6 +47,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
 
     const competenceMap = useMemo(() => new Map(competences.map(ch => [ch.id, ch.name])), [competences]);
     const valueStreamMap = useMemo(() => new Map(valueStreams.map(vs => [vs.id, vs.name])), [valueStreams]);
+    const functionalTeamMap = useMemo(() => new Map(functionalTeams.map(ft => [ft.id, ft.name])), [functionalTeams]);
     const skillMap = useMemo(() => new Map(skills.map(s => [s.id, s.name])), [skills]);
 
     // Sorted lists for dropdowns
@@ -257,8 +259,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                         <SortIcon active={sortConfig?.key === 'competence'} direction={sortConfig?.direction || 'asc'} />
                                     </div>
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Skills</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Value Streams</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Assignments</th>
                                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
@@ -284,21 +285,27 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                         {competenceMap.get(emp.competenceId) || 'N/A'}
                                     </td>
                                     <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 align-top max-w-sm">
-                                        <div className="flex flex-wrap gap-1">
-                                            {emp.skills?.map(skill => (
-                                                <span key={skill.skillId} className={`px-2 py-1 text-xs font-bold rounded-full ${proficiencyColors[skill.proficiency] || 'bg-slate-200'}`}>
-                                                    {skillMap.get(skill.skillId)} ({skill.proficiency})
-                                                </span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 align-top max-w-sm">
-                                        <div className="flex flex-wrap gap-1">
-                                            {emp.valueStreamIds.map(vsId => (
-                                                <span key={vsId} className="px-2 py-1 text-xs font-semibold text-indigo-800 bg-indigo-100 dark:text-indigo-100 dark:bg-indigo-900 rounded-full">
-                                                    {valueStreamMap.get(vsId) || 'Unknown'}
-                                                </span>
-                                            ))}
+                                        <div className="flex flex-col gap-1">
+                                            {emp.valueStreamIds.length > 0 && (
+                                                <div className="flex flex-wrap gap-1">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Solutions:</span>
+                                                    {emp.valueStreamIds.map(vsId => (
+                                                        <span key={vsId} className="px-2 py-0.5 text-[10px] font-semibold text-indigo-800 bg-indigo-100 dark:text-indigo-100 dark:bg-indigo-900 rounded-full">
+                                                            {valueStreamMap.get(vsId) || 'Unknown'}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
+                                            {(emp.functionalTeamIds && emp.functionalTeamIds.length > 0) && (
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Teams:</span>
+                                                    {emp.functionalTeamIds.map(ftId => (
+                                                        <span key={ftId} className="px-2 py-0.5 text-[10px] font-semibold text-pink-800 bg-pink-100 dark:text-pink-100 dark:bg-pink-900 rounded-full">
+                                                            {functionalTeamMap.get(ftId) || 'Unknown'}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            )}
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium align-top">
@@ -321,11 +328,12 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                 </div>
             </Card>
 
-            <Modal isOpen={isModalOpen} onClose={handleCancel} title={editingEmployee ? 'Edit Employee' : 'Add New Employee'}>
+            <Modal isOpen={isModalOpen} onClose={handleCancel} title={editingEmployee ? 'Edit Employee' : 'Add New Employee'} maxWidth="max-w-4xl">
                 <EmployeeForm
                     employee={editingEmployee}
                     competences={competences}
                     valueStreams={valueStreams}
+                    functionalTeams={functionalTeams}
                     skills={skills}
                     onSave={handleSave}
                     onCancel={handleCancel}

@@ -1,7 +1,6 @@
 
 import React, { useState, useRef, useLayoutEffect, useEffect, useMemo, useCallback } from 'react';
 import { AppData, Employee, ValueStream, Competence, Service, CompetenceTeamType, SolutionType } from '../types';
-import { SOLUTION_TYPES } from '../constants';
 import Card from './common/Card';
 import UserStarIcon from './icons/UserStarIcon';
 import OrgChartIcon from './icons/OrgChartIcon';
@@ -15,14 +14,14 @@ type Connection = { key: string; d: string; employeeId: string; vsId: string; co
 type Highlight = { type: 'vs' | 'competence' | null; id: string | null };
 
 const typeBadges: Record<CompetenceTeamType, string> = {
-    'Product Team': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
+    'Standard': 'bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200',
     'Crew': 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200',
-    'Enabling Team': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
+    'Enabling': 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200',
     'Unassigned': 'bg-slate-100 text-slate-800 dark:bg-slate-700 dark:text-slate-300',
 };
 
 const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
-    const { employees, competences, valueStreams, services } = data;
+    const { employees, competences, valueStreams, services, solutionTypes = [] } = data;
     const containerRef = useRef<HTMLDivElement>(null);
     const elementRefs = useRef<Map<string, HTMLElement | null>>(new Map());
     const [positions, setPositions] = useState<Positions>({});
@@ -194,7 +193,7 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
                             className="block w-full md:w-auto rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pr-8"
                         >
                             <option value="All">All Solution Types</option>
-                            {SOLUTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            {solutionTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                         </select>
                     </div>
                     {hasActiveFilters && (

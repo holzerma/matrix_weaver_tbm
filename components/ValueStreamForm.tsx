@@ -1,9 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ValueStream, CostPool, ResourceTower, SolutionType, SolutionClassification, CostAllocation, Service, SolutionCategory } from '../types';
-import { SOLUTION_TYPES } from '../constants';
+import { ValueStream, CostPool, ResourceTower, SolutionType, SolutionClassification, CostAllocation, Service, SolutionCategory, SolutionTypeDefinition } from '../types';
 import DeleteIcon from './icons/DeleteIcon';
 import PlusIcon from './icons/PlusIcon';
+import SearchIcon from './icons/SearchIcon';
 import Modal from './common/Modal';
 
 interface ValueStreamFormProps {
@@ -12,6 +12,7 @@ interface ValueStreamFormProps {
     costPools: CostPool[];
     services: Service[];
     solutionCategories: SolutionCategory[];
+    solutionTypes?: SolutionTypeDefinition[];
     onSave: (valueStream: ValueStream) => void;
     onCancel: () => void;
 }
@@ -20,20 +21,20 @@ const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { styl
 
 const SOLUTION_CLASSIFICATIONS: SolutionClassification[] = ['Product', 'Service'];
 
-const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resourceTowers, costPools, services, solutionCategories, onSave, onCancel }) => {
+const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resourceTowers, costPools, services, solutionCategories, solutionTypes = [], onSave, onCancel }) => {
     const [formData, setFormData] = useState({ 
         name: '', 
         description: '', 
         costPoolConsumption: [] as CostAllocation[],
-        solutionType: 'Business' as SolutionType,
+        solutionType: (solutionTypes.length > 0 ? solutionTypes[0].name : 'Business') as SolutionType,
         solutionCategory: '',
         solutionClassification: 'Product' as SolutionClassification,
         serviceIds: [] as string[],
     });
     const [isCostModalOpen, setIsCostModalOpen] = useState(false);
     const [newCost, setNewCost] = useState({ poolId: '', amount: '' });
+    const [serviceSearch, setServiceSearch] = useState('');
 
-    // Explicitly typing the Maps ensures that methods like `.get()` return a correctly typed value.
     const resourceTowerMap = new Map<string, ResourceTower>(resourceTowers.map(rt => [rt.id, rt]));
     const costPoolMap = new Map<string, CostPool>(costPools.map(cp => [cp.id, cp]));
 
@@ -43,7 +44,7 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                 name: valueStream.name, 
                 description: valueStream.description, 
                 costPoolConsumption: valueStream.costPoolConsumption || [],
-                solutionType: valueStream.solutionType || 'Business',
+                solutionType: valueStream.solutionType || (solutionTypes.length > 0 ? solutionTypes[0].name : 'Business'),
                 solutionCategory: valueStream.solutionCategory || '',
                 solutionClassification: valueStream.solutionClassification || 'Product',
                 serviceIds: valueStream.serviceIds || [],
@@ -53,24 +54,21 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                 name: '', 
                 description: '', 
                 costPoolConsumption: [],
-                solutionType: 'Business',
-                solutionCategory: '', // Start empty, will default via cascading logic if needed
+                solutionType: (solutionTypes.length > 0 ? solutionTypes[0].name : 'Business'),
+                solutionCategory: '', 
                 solutionClassification: 'Product',
                 serviceIds: [],
             });
         }
-    }, [valueStream]);
+    }, [valueStream, solutionTypes]);
 
-    // Handle Type Change separately to implement cascading reset logic
     const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
         const newType = e.target.value as SolutionType;
-        // Filter available categories for the new type
         const availableCats = solutionCategories.filter(c => c.type === newType);
         
         setFormData(prev => ({
             ...prev,
             solutionType: newType,
-            // Reset category to the first available one for this type, or empty string
             solutionCategory: availableCats.length > 0 ? availableCats[0].name : ''
         }));
     };
@@ -144,24 +142,27 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
         }, {});
     }, [formData.costPoolConsumption, costPoolMap, resourceTowerMap]);
 
-    // Filter categories based on selected Type
     const filteredCategories = useMemo(() => {
         return solutionCategories
             .filter(c => c.type === formData.solutionType)
             .sort((a, b) => a.name.localeCompare(b.name));
     }, [solutionCategories, formData.solutionType]);
 
-    // Ensure current category is valid for selected type on mount/update (graceful fallback for old data)
     useEffect(() => {
         if (filteredCategories.length > 0 && !filteredCategories.find(c => c.name === formData.solutionCategory)) {
-             // If currently selected category doesn't match the type (e.g. data mismatch), 
-             // but we have valid options, set it to the first valid one.
-             // Only do this if formData.solutionCategory is effectively 'invalid' for the current type context.
              if (formData.solutionCategory === '') {
                  setFormData(prev => ({ ...prev, solutionCategory: filteredCategories[0].name }));
              }
         }
-    }, [filteredCategories, formData.solutionType]); // Removed formData.solutionCategory to prevent loops
+    }, [filteredCategories, formData.solutionType]);
+
+    const sortedServices = useMemo(() => {
+        return [...services].sort((a, b) => a.name.localeCompare(b.name));
+    }, [services]);
+
+    const filteredServices = useMemo(() => {
+        return sortedServices.filter(s => s.name.toLowerCase().includes(serviceSearch.toLowerCase()));
+    }, [sortedServices, serviceSearch]);
 
     const inputClasses = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm shadow-sm placeholder-slate-400 dark:text-slate-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500";
     const labelClasses = "block text-sm font-medium text-slate-700 dark:text-slate-300";
@@ -183,7 +184,7 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                     <div>
                         <label htmlFor="solutionType" className={labelClasses}>Solution Type</label>
                         <select name="solutionType" id="solutionType" value={formData.solutionType} onChange={handleTypeChange} className={inputClasses} required>
-                            {SOLUTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                            {solutionTypes.map(t => <option key={t.id} value={t.name}>{t.name}</option>)}
                         </select>
                     </div>
                     <div>
@@ -201,8 +202,21 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
 
                 <div>
                     <label className={labelClasses}>Provided Services</label>
-                    <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-slate-300 dark:border-slate-600 rounded-md">
-                        {services.map(service => (
+                    <div className="relative mt-1 mb-2">
+                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <SearchIcon className="w-4 h-4 text-slate-400" />
+                        </div>
+                        <input 
+                            type="text" 
+                            placeholder="Filter services..." 
+                            value={serviceSearch}
+                            onChange={(e) => setServiceSearch(e.target.value)}
+                            className="pl-9 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 text-xs py-1.5"
+                        />
+                    </div>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-slate-300 dark:border-slate-600 rounded-md bg-slate-50 dark:bg-slate-800/50">
+                        {filteredServices.length === 0 && <p className="text-xs text-slate-500 p-1">No services found.</p>}
+                        {filteredServices.map(service => (
                             <label key={service.id} className="flex items-center space-x-2 text-sm text-slate-800 dark:text-slate-200">
                                 <input
                                     type="checkbox"
@@ -210,7 +224,7 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                                     onChange={() => handleServiceChange(service.id)}
                                     className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
                                 />
-                                <span>{service.name}</span>
+                                <span className="truncate">{service.name}</span>
                             </label>
                         ))}
                     </div>
@@ -226,7 +240,6 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                     </div>
                     <div className="space-y-3 p-3 border border-slate-300 dark:border-slate-600 rounded-md max-h-60 overflow-y-auto">
                         {Object.keys(costsByTower).length === 0 && <p className="text-sm text-slate-500 dark:text-slate-400">No consumed costs. Click 'Add Cost' to begin.</p>}
-                        {/* FIX: Explicitly cast entry in Object.entries to any to avoid "property does not exist on type {}" error. */}
                         {Object.entries(costsByTower).map(([towerId, {towerName, costs}]: [string, any]) => (
                             <div key={towerId}>
                                 <h4 className="text-sm font-semibold text-indigo-800 dark:text-indigo-300">{towerName}</h4>
