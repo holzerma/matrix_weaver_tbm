@@ -20,8 +20,9 @@ import SolutionTaxonomyView from './components/SolutionTaxonomyView';
 import SolutionCategoryManagement from './components/SolutionCategoryManagement';
 import SolutionTypeManagement from './components/SolutionTypeManagement';
 import FunctionalTeamManagement from './components/FunctionalTeamManagement';
+import FunctionalView from './components/FunctionalView';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'functionalView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
 
 const App: React.FC = () => {
     const [view, setView] = useState<View>('dashboard');
@@ -205,6 +206,8 @@ const App: React.FC = () => {
                 return <ResourceTowerManagement resourceTowers={resourceTowers} costPools={costPools} valueStreams={valueStreams} onAddResourceTower={handleAddResourceTower} onUpdateResourceTower={handleUpdateResourceTower} onDeleteResourceTower={handleDeleteResourceTower} />;
             case 'orgView':
                 return <OrganizationView data={appData} />;
+            case 'functionalView':
+                return <FunctionalView data={appData} />;
             case 'financialAnalytics':
                 return <FinancialAnalytics data={appData} />;
             case 'solutionTaxonomy':

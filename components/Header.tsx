@@ -21,7 +21,7 @@ import SitemapIcon from './icons/SitemapIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import UserGroupIcon from './icons/UserGroupIcon';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'functionalView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
 
 interface HeaderProps {
     currentView: View;
@@ -44,12 +44,13 @@ const navItems: NavItem[] = [
         id: 'analytics', label: 'Analytics', icon: <AnalyticsIcon />, children: [
             { id: 'financialAnalytics', label: 'Financial Analytics', icon: <AnalyticsIcon /> },
             { id: 'solutionTaxonomy', label: 'Solution Taxonomy', icon: <SitemapIcon /> },
+            { id: 'orgView', label: 'Competence Map', icon: <OrgChartIcon /> },
+            { id: 'functionalView', label: 'Functional Map', icon: <UserGroupIcon /> },
         ] 
     },
-    { id: 'orgView', label: 'Org View', icon: <OrgChartIcon /> },
     {
         id: 'offerings', label: 'Offerings', icon: <StreamIcon />, children: [
-            { id: 'valueStreams', label: 'Solutions', icon: <StreamIcon /> },
+            { id: 'valueStreams', label: 'Value Streams / Solutions', icon: <StreamIcon /> },
             { id: 'services', label: 'Services', icon: <BriefcaseIcon /> },
         ]
     },
@@ -359,7 +360,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                         <ol className="list-decimal list-inside space-y-2">
                            <li><span className="font-semibold">Explore the Dashboard:</span> This is your main overview. You can filter by a specific Solution or Competence to drill down into details. Check the 'Organizational Health Checks' to spot any immediate issues.</li>
                            <li><span className="font-semibold">Manage Your Data:</span> Use the navigation menus at the top to visit different management pages. Under 'People', 'Offerings', and 'TBM', you can add, edit, or delete any item.</li>
-                           <li><span className="font-semibold">Analyze & Visualize:</span> Dive into the 'Analytics' and 'Org View' pages to see how everything connects. The Competency Map under 'People' is great for finding skill experts and gaps.</li>
+                           <li><span className="font-semibold">Analyze & Visualize:</span> Dive into the 'Analytics' page to see how everything connects. The 'Competence Map' shows reporting lines, while the 'Functional Map' shows operational execution squads.</li>
                         </ol>
                     </div>
                     <div>
