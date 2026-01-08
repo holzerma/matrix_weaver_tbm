@@ -1,7 +1,7 @@
 
-import { Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service, SolutionType } from './types';
+import { Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service, SolutionType, SolutionCategory } from './types';
 
-export const APP_VERSION = '1.3.0';
+export const APP_VERSION = '1.5.5';
 
 export const SKILL_CATEGORIES = [
     'Frontend Development',
@@ -18,20 +18,40 @@ export const SKILL_CATEGORIES = [
 
 export const SOLUTION_TYPES: SolutionType[] = ['Business', 'Workplace', 'Infrastructure', 'Delivery', 'Shared & Corporate', 'Artificial Intelligence'];
 
-export const SOLUTION_CATEGORIES = [
-    // Business
-    'Product Management', 'Sales & Marketing', 'Manufacturing & Delivery', 'Customer Service',
-    // Workplace
-    'Client Computing', 'Communication & Collaboration', 'Connectivity',
-    // Infrastructure
-    'Compute', 'Data Center', 'Data', 'Network', 'Storage',
-    // Delivery
-    'Strategy & Planning', 'Development', 'Operations', 'Support', 'Security & Compliance', 'Enabling Platforms',
-    // Shared & Corporate
-    'Finance', 'Workforce', 'Vendor & Procurement', 'Health, Safety, Security, and Environmental', 'Risk, Audit & Compliance', 'Legal', 'Property & Facility', 'Corporate Communications', 'Sustainability & ESG',
-    // Artificial Intelligence
-    'Agentic', 'Generative', 'Interpretive', 'Predictive', 'Prescriptive'
-].sort();
+// TBM Taxonomy Structure for initialization and migration
+export const TBM_TAXONOMY: Record<SolutionType, string[]> = {
+    'Business': ['Product Management', 'Sales & Marketing', 'Manufacturing & Delivery', 'Customer Service'],
+    'Workplace': ['Client Computing', 'Communication & Collaboration', 'Connectivity'],
+    'Infrastructure': ['Compute', 'Data Center', 'Data', 'Network', 'Storage'],
+    'Delivery': ['Strategy & Planning', 'Development', 'Operations', 'Support', 'Security & Compliance', 'Enabling Platforms'],
+    'Shared & Corporate': ['Finance', 'Workforce', 'Vendor & Procurement', 'Health, Safety, Security, and Environmental', 'Risk, Audit & Compliance', 'Legal', 'Property & Facility', 'Corporate Communications', 'Sustainability & ESG'],
+    'Artificial Intelligence': ['Agentic', 'Generative', 'Interpretive', 'Predictive', 'Prescriptive']
+};
+
+// Flattened map for backward compatibility (Name -> Type)
+export const CATEGORY_TYPE_MAP: Record<string, SolutionType> = {};
+Object.entries(TBM_TAXONOMY).forEach(([type, categories]) => {
+    categories.forEach(cat => {
+        CATEGORY_TYPE_MAP[cat] = type as SolutionType;
+    });
+});
+
+export const initialSolutionCategories: SolutionCategory[] = [];
+let catCounter = 0;
+// Generate initial categories from the taxonomy structure
+Object.entries(TBM_TAXONOMY).forEach(([type, categories]) => {
+    categories.forEach(name => {
+        initialSolutionCategories.push({
+            id: `solcat_${catCounter++}`,
+            name: name,
+            description: `Standard TBM Category for ${name}`,
+            type: type as SolutionType
+        });
+    });
+});
+// Sort alphabetically by name for consistency
+initialSolutionCategories.sort((a, b) => a.name.localeCompare(b.name));
+
 
 export const initialSkills: Skill[] = [
     { id: 'skill1', name: 'React', category: 'Frontend Development' },

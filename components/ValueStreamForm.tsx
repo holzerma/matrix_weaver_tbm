@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
-import { ValueStream, CostPool, ResourceTower, SolutionType, SolutionClassification, CostAllocation, Service } from '../types';
-import { SOLUTION_TYPES, SOLUTION_CATEGORIES } from '../constants';
+import { ValueStream, CostPool, ResourceTower, SolutionType, SolutionClassification, CostAllocation, Service, SolutionCategory } from '../types';
+import { SOLUTION_TYPES } from '../constants';
 import DeleteIcon from './icons/DeleteIcon';
 import PlusIcon from './icons/PlusIcon';
 import Modal from './common/Modal';
@@ -11,6 +11,7 @@ interface ValueStreamFormProps {
     resourceTowers: ResourceTower[];
     costPools: CostPool[];
     services: Service[];
+    solutionCategories: SolutionCategory[];
     onSave: (valueStream: ValueStream) => void;
     onCancel: () => void;
 }
@@ -19,7 +20,7 @@ const formatCurrency = (amount: number) => new Intl.NumberFormat('en-US', { styl
 
 const SOLUTION_CLASSIFICATIONS: SolutionClassification[] = ['Product', 'Service'];
 
-const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resourceTowers, costPools, services, onSave, onCancel }) => {
+const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resourceTowers, costPools, services, solutionCategories, onSave, onCancel }) => {
     const [formData, setFormData] = useState({ 
         name: '', 
         description: '', 
@@ -32,7 +33,7 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
     const [isCostModalOpen, setIsCostModalOpen] = useState(false);
     const [newCost, setNewCost] = useState({ poolId: '', amount: '' });
 
-    // Explicitly typing the Maps ensures that methods like `.get()` return a correctly typed value (e.g., `ResourceTower | undefined` instead of `any`).
+    // Explicitly typing the Maps ensures that methods like `.get()` return a correctly typed value.
     const resourceTowerMap = new Map<string, ResourceTower>(resourceTowers.map(rt => [rt.id, rt]));
     const costPoolMap = new Map<string, CostPool>(costPools.map(cp => [cp.id, cp]));
 
@@ -53,12 +54,26 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                 description: '', 
                 costPoolConsumption: [],
                 solutionType: 'Business',
-                solutionCategory: '',
+                solutionCategory: '', // Start empty, will default via cascading logic if needed
                 solutionClassification: 'Product',
                 serviceIds: [],
             });
         }
     }, [valueStream]);
+
+    // Handle Type Change separately to implement cascading reset logic
+    const handleTypeChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
+        const newType = e.target.value as SolutionType;
+        // Filter available categories for the new type
+        const availableCats = solutionCategories.filter(c => c.type === newType);
+        
+        setFormData(prev => ({
+            ...prev,
+            solutionType: newType,
+            // Reset category to the first available one for this type, or empty string
+            solutionCategory: availableCats.length > 0 ? availableCats[0].name : ''
+        }));
+    };
 
     const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
         const { name, value } = e.target;
@@ -113,7 +128,6 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
         !formData.costPoolConsumption.some(c => c.costPoolId === cp.id)
     );
 
-    // FIX: Explicitly type the initial value for the reduce function and use generic for better inference to avoid type errors.
     const costsByTower = useMemo(() => {
         type CostsByTowerAcc = Record<string, { towerName: string, costs: CostAllocation[] }>;
         return formData.costPoolConsumption.reduce<CostsByTowerAcc>((acc, cost) => {
@@ -130,9 +144,28 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
         }, {});
     }, [formData.costPoolConsumption, costPoolMap, resourceTowerMap]);
 
+    // Filter categories based on selected Type
+    const filteredCategories = useMemo(() => {
+        return solutionCategories
+            .filter(c => c.type === formData.solutionType)
+            .sort((a, b) => a.name.localeCompare(b.name));
+    }, [solutionCategories, formData.solutionType]);
+
+    // Ensure current category is valid for selected type on mount/update (graceful fallback for old data)
+    useEffect(() => {
+        if (filteredCategories.length > 0 && !filteredCategories.find(c => c.name === formData.solutionCategory)) {
+             // If currently selected category doesn't match the type (e.g. data mismatch), 
+             // but we have valid options, set it to the first valid one.
+             // Only do this if formData.solutionCategory is effectively 'invalid' for the current type context.
+             if (formData.solutionCategory === '') {
+                 setFormData(prev => ({ ...prev, solutionCategory: filteredCategories[0].name }));
+             }
+        }
+    }, [filteredCategories, formData.solutionType]); // Removed formData.solutionCategory to prevent loops
+
     const inputClasses = "mt-1 block w-full px-3 py-2 bg-white dark:bg-slate-700 border border-slate-300 dark:border-slate-600 rounded-md text-sm shadow-sm placeholder-slate-400 dark:text-slate-200 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500";
     const labelClasses = "block text-sm font-medium text-slate-700 dark:text-slate-300";
-
+    
     return (
         <>
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -149,15 +182,15 @@ const ValueStreamForm: React.FC<ValueStreamFormProps> = ({ valueStream, resource
                     </div>
                     <div>
                         <label htmlFor="solutionType" className={labelClasses}>Solution Type</label>
-                        <select name="solutionType" id="solutionType" value={formData.solutionType} onChange={handleChange} className={inputClasses} required>
+                        <select name="solutionType" id="solutionType" value={formData.solutionType} onChange={handleTypeChange} className={inputClasses} required>
                             {SOLUTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                         </select>
                     </div>
                     <div>
                         <label htmlFor="solutionCategory" className={labelClasses}>Solution Category</label>
                          <select name="solutionCategory" id="solutionCategory" value={formData.solutionCategory} onChange={handleChange} className={inputClasses} required>
-                            <option value="" disabled>Select a category</option>
-                            {SOLUTION_CATEGORIES.map(c => <option key={c} value={c}>{c}</option>)}
+                            {filteredCategories.length === 0 && <option value="" disabled>No categories for this type</option>}
+                            {filteredCategories.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                         </select>
                     </div>
                 </div>

@@ -20,7 +20,7 @@ import BriefcaseIcon from './icons/BriefcaseIcon';
 import SitemapIcon from './icons/SitemapIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories';
 
 interface HeaderProps {
     currentView: View;
@@ -55,7 +55,7 @@ const navItems: NavItem[] = [
     {
         id: 'people', label: 'People', icon: <UsersIcon />, children: [
             { id: 'employees', label: 'Employees', icon: <UsersIcon /> },
-            { id: 'competences', label: 'Competences', icon: <BookOpenIcon /> },
+            { id: 'competences', label: 'Competence Teams / Line', icon: <BookOpenIcon /> },
             { id: 'skills', label: 'Skills', icon: <SkillsIcon /> },
             { id: 'competencyMap', label: 'Competency Map', icon: <MapIcon /> },
         ]
@@ -64,6 +64,7 @@ const navItems: NavItem[] = [
         id: 'tbm', label: 'TBM', icon: <TowerIcon />, children: [
             { id: 'resourceTowers', label: 'Resource Towers', icon: <ResourceTowerIcon /> },
             { id: 'costPools', label: 'Cost Pools', icon: <TowerIcon /> },
+            { id: 'solutionCategories', label: 'Solution Categories', icon: <SitemapIcon /> },
         ]
     },
 ];

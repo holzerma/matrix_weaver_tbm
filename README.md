@@ -18,7 +18,10 @@ The application comes pre-loaded with a comprehensive demo dataset based on the 
 *   **Advanced Analytics & Visualization:**
     *   **Live Organization View:** A dynamic, interactive chart that visually maps the relationships between Competences, Employees, and the Solutions they contribute to. Hovering over any element highlights its direct and indirect connections.
     *   **Financial Analytics Suite:** A powerful tool for deep-diving into the financial composition of any given solution. It features interactive Sankey diagrams to visualize cost flows through different lenses (Financial, TBM Structure, Organizational).
-    *   **Solution Taxonomy Viewer:** A dedicated analytics page that provides a clear, interactive diagram of the full TBM solution hierarchy: `Type -> Category -> Solution -> Service`.
+    *   **Solution Taxonomy Viewer:** A dedicated analytics page that provides a clear, interactive diagram of the full TBM solution hierarchy (`Type -> Category -> Solution -> Service`). It now includes granular resource metrics:
+        *   **Reach (Unique):** Distinct individuals involved.
+        *   **Volume (Assignments):** Total roles filled (sum of parts).
+        *   **Capacity (FTE):** Financial/Effort distribution.
 *   **Skills & Competency Management:**
     *   **Skills Repository:** Centrally define and manage a library of skills with standardized categories.
     *   **Proficiency Tracking:** Assign skills to employees with a proficiency rating from 1 (Beginner) to 5 (Expert).
@@ -26,34 +29,71 @@ The application comes pre-loaded with a comprehensive demo dataset based on the 
 *   **Data Portability:** Easily import and export the entire application state as a single JSON file, allowing for backups, versioning, and sharing of organizational models.
 *   **Global Search:** Quickly find any entity within the application—be it an employee, a solution, or a competence—directly from the header.
 *   **In-App Guidance:** A built-in user guide explains core TBM concepts and application features to help new users get started.
-*   **Printable Reports:** The dashboard views are optimized for printing, allowing users to generate physical reports.
+*   **Printable Reports:** The dashboard views are optimized for printing, allowing users to generate physical reports (PDFs via browser print).
 
 ---
 
-## Architecture
+## Architecture & Tech Stack
 
-The application is built as a modern, single-page application (SPA) with a focus on simplicity, performance, and maintainability.
+The application is built as a modern Single Page Application (SPA).
 
-*   **Frontend Framework:** Built with **React 18** and **TypeScript**, ensuring a robust, type-safe, and component-based structure.
-*   **Styling:** Styled with **Tailwind CSS**, a utility-first CSS framework that allows for rapid and consistent UI development. The application also supports a dark mode theme.
-*   **State Management:** Utilizes React's built-in hooks (`useState`, `useMemo`, `useEffect`) for managing component and application state. There is no external state management library like Redux, keeping the architecture lightweight.
-*   **Data Persistence:** A custom `useLocalStorage` hook persists the entire application state (employees, solutions, etc.) in the browser's local storage. This ensures that all data is saved automatically and is available across sessions without needing a backend.
-*   **Data Flow:** Follows a unidirectional data flow pattern. The main `App.tsx` component acts as the single source of truth, holding all the data and passing it down to child components via props. State modifications are handled by callback functions passed down from `App.tsx`.
-*   **Visualization:** All charts, including pie charts, bar charts, and the complex Sankey diagrams, are rendered using the **Recharts** library, which provides a rich set of composable and declarative charting components.
-*   **Build & Dependencies:** The project uses a modern, **build-less setup**. Instead of a traditional build process (like Webpack or Vite), it leverages an `importmap` in `index.html`. This allows the browser to load React and other libraries as ES modules directly from a CDN (`esm.sh`), simplifying the development workflow.
+*   **Frontend:** React 18, TypeScript
+*   **Build Tool:** Vite
+*   **Styling:** Tailwind CSS (via CDN or build process)
+*   **Visualization:** Recharts
+*   **State Management:** React Hooks + LocalStorage Persistence (No backend database required)
 
 ---
 
 ## How to Run Locally
 
-Because of the build-less architecture, running the application is very straightforward.
-
-1.  Ensure all the application files (`index.html`, `index.js`, `components/`, etc.) are in a single directory.
-2.  Serve this directory using any simple local web server. For example, if you have Python installed, you can run:
+1.  **Prerequisites:** Ensure you have [Node.js](https://nodejs.org/) installed (v18 or higher recommended).
+2.  **Install Dependencies:**
     ```bash
-    # For Python 3
-    python3 -m http.server
+    npm install
     ```
-3.  Open your web browser and navigate to the local address provided by the server (e.g., `http://localhost:8000`).
+3.  **Start Development Server:**
+    ```bash
+    npm run dev
+    ```
+4.  Open your browser to the URL provided in the terminal (usually `http://localhost:5173`).
 
-The application will load and run, using the data persisted in your browser's local storage or the initial constant data if it's the first time.
+To build for production locally:
+```bash
+npm run build
+npm run preview
+```
+
+---
+
+## Deploying to Azure Static Web Apps
+
+This application is configured for easy deployment to **Azure Static Web Apps**.
+
+### Prerequisites
+*   An Azure Subscription.
+*   A GitHub repository containing this code.
+
+### Deployment Steps
+
+1.  **Push Code to GitHub:** Ensure your code (including `package.json`, `vite.config.ts`, and `staticwebapp.config.json`) is pushed to a GitHub repository.
+2.  **Create Static Web App:**
+    *   Log in to the [Azure Portal](https://portal.azure.com).
+    *   Search for **Static Web Apps** and click **Create**.
+    *   Select your **Subscription** and **Resource Group**.
+    *   Name your app (e.g., `matrix-weaver-tbm`).
+    *   Plan type: **Free** (for personal/hobby use) or **Standard**.
+    *   **Deployment details:** Select **GitHub**.
+    *   Authorize Azure to access your GitHub account and select your repository and branch.
+3.  **Build Details:**
+    *   **Build Presets:** Select **React**.
+    *   **App location:** `/` (The root of your repo).
+    *   **Api location:** (Leave empty).
+    *   **Output location:** `dist` (This matches the `vite.config.ts` output).
+4.  **Review + Create:** Click **Review + create**, then **Create**.
+
+Azure will automatically create a GitHub Action workflow in your repository, build the application using `npm run build`, and deploy it.
+
+### Configuration Files
+*   **`staticwebapp.config.json`**: This file handles the SPA routing (rewriting all navigation to `index.html`) so that refreshing the page on a sub-route (like `/employees`) works correctly.
+*   **`vite.config.ts`**: Configures the build output directory to `dist`.

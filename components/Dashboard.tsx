@@ -455,7 +455,7 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
     // FIX: Explicitly type the initial value for the reduce function and use generic for better inference to avoid type errors.
     const costsByTower = useMemo(() => {
         type CostsByTowerAcc = Record<string, { towerName: string, tower: ResourceTower | undefined, costs: { costPoolId: string, annualCost: number }[] }>;
-        return valueStream.costPoolConsumption.reduce<CostsByTowerAcc>((acc, cost) => {
+        return valueStream.costPoolConsumption.reduce((acc, cost) => {
             const pool = costPoolMap.get(cost.costPoolId);
             if (pool) {
                 const towerId = pool.defaultResourceTowerId;
@@ -466,7 +466,7 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
                 acc[towerId].costs.push(cost);
             }
             return acc;
-        }, {});
+        }, {} as CostsByTowerAcc);
     }, [valueStream, costPoolMap, resourceTowerMap]);
 
     return (
@@ -541,7 +541,15 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
                         {members.map(m => (
                              <div key={m.id} className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                                  <div>
-                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{m.name} {m.isManager && <span title="Manager" className="text-amber-500 inline-block align-middle"><UserStarIcon /></span>}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-semibold text-slate-800 dark:text-slate-200">
+                                            {m.name}
+                                            {m.isManager && <span title="Manager" className="text-amber-500 inline-block align-middle ml-1"><UserStarIcon /></span>}
+                                        </p>
+                                        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${m.employeeType === 'internal' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'}`}>
+                                            {m.employeeType}
+                                        </span>
+                                    </div>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">{m.role}</p>
                                  </div>
                                  <p className="text-sm text-slate-600 dark:text-slate-300">{competenceMap.get(m.competenceId)}</p>
@@ -644,7 +652,15 @@ const CompetenceDetailView: React.FC<CompetenceDetailViewProps> = ({ competence,
                          {members.map(m => (
                              <div key={m.id} className="flex justify-between items-center py-2 border-b border-slate-200 dark:border-slate-700">
                                  <div>
-                                    <p className="font-semibold text-slate-800 dark:text-slate-200">{m.name} {m.isManager && <span title="Manager" className="text-amber-500 inline-block align-middle"><UserStarIcon /></span>}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="font-semibold text-slate-800 dark:text-slate-200">
+                                            {m.name}
+                                            {m.isManager && <span title="Manager" className="text-amber-500 inline-block align-middle ml-1"><UserStarIcon /></span>}
+                                        </p>
+                                        <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${m.employeeType === 'internal' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'}`}>
+                                            {m.employeeType}
+                                        </span>
+                                    </div>
                                     <p className="text-sm text-slate-500 dark:text-slate-400">{m.role}</p>
                                  </div>
                                  <div className="flex flex-wrap gap-1 justify-end max-w-[50%]">

@@ -1,8 +1,8 @@
 
 import React, { useState } from 'react';
 import useLocalStorage from './hooks/useLocalStorage';
-import { initialEmployees, initialValueStreams, initialCompetences, initialCostPools, initialResourceTowers, initialSkills, initialServices } from './constants';
-import { Employee, ValueStream, Competence, CostPool, ResourceTower, AppData, Skill, Service } from './types';
+import { initialEmployees, initialValueStreams, initialCompetences, initialCostPools, initialResourceTowers, initialSkills, initialServices, initialSolutionCategories, CATEGORY_TYPE_MAP } from './constants';
+import { Employee, ValueStream, Competence, CostPool, ResourceTower, AppData, Skill, Service, SolutionCategory, SolutionType } from './types';
 import Header from './components/Header';
 import Dashboard from './components/Dashboard';
 import EmployeeManagement from './components/EmployeeManagement';
@@ -17,8 +17,9 @@ import SkillsManagement from './components/SkillsManagement';
 import CompetencyMap from './components/CompetencyMap';
 import ServiceManagement from './components/ServiceManagement';
 import SolutionTaxonomyView from './components/SolutionTaxonomyView';
+import SolutionCategoryManagement from './components/SolutionCategoryManagement';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories';
 
 const App: React.FC = () => {
     const [view, setView] = useState<View>('dashboard');
@@ -29,8 +30,9 @@ const App: React.FC = () => {
     const [resourceTowers, setResourceTowers] = useLocalStorage<ResourceTower[]>('resourceTowers', initialResourceTowers);
     const [skills, setSkills] = useLocalStorage<Skill[]>('skills', initialSkills);
     const [services, setServices] = useLocalStorage<Service[]>('services', initialServices);
+    const [solutionCategories, setSolutionCategories] = useLocalStorage<SolutionCategory[]>('solutionCategories', initialSolutionCategories);
 
-    const appData: AppData = { employees, valueStreams, competences, costPools, resourceTowers, skills, services };
+    const appData: AppData = { employees, valueStreams, competences, costPools, resourceTowers, skills, services, solutionCategories };
 
     const handleAddEmployee = (employee: Employee) => setEmployees(prev => [...prev, employee]);
     const handleUpdateEmployee = (updatedEmployee: Employee) => setEmployees(prev => prev.map(e => e.id === updatedEmployee.id ? updatedEmployee : e));
@@ -60,6 +62,17 @@ const App: React.FC = () => {
     const handleUpdateService = (updatedService: Service) => setServices(prev => prev.map(s => s.id === updatedService.id ? updatedService : s));
     const handleDeleteService = (serviceId: string) => setServices(prev => prev.filter(s => s.id !== serviceId));
 
+    const handleAddSolutionCategory = (category: SolutionCategory) => setSolutionCategories(prev => [...prev, category]);
+    const handleUpdateSolutionCategory = (updatedCategory: SolutionCategory) => {
+        const oldCategory = solutionCategories.find(c => c.id === updatedCategory.id);
+        setSolutionCategories(prev => prev.map(c => c.id === updatedCategory.id ? updatedCategory : c));
+        // Cascade update if name changed
+        if (oldCategory && oldCategory.name !== updatedCategory.name) {
+            setValueStreams(prev => prev.map(vs => vs.solutionCategory === oldCategory.name ? { ...vs, solutionCategory: updatedCategory.name } : vs));
+        }
+    };
+    const handleDeleteSolutionCategory = (categoryId: string) => setSolutionCategories(prev => prev.filter(c => c.id !== categoryId));
+
     const handleImport = (data: AppData) => {
         setEmployees(data.employees || []);
         setValueStreams(data.valueStreams || []);
@@ -68,6 +81,21 @@ const App: React.FC = () => {
         setResourceTowers(data.resourceTowers || []);
         setSkills(data.skills || []);
         setServices(data.services || []);
+        
+        // Migration logic for old categories without 'type'
+        let importedCategories = data.solutionCategories || initialSolutionCategories;
+        importedCategories = importedCategories.map(cat => {
+            if (!cat.type) {
+                // Attempt to find type from map or default to Business
+                return {
+                    ...cat,
+                    type: CATEGORY_TYPE_MAP[cat.name] || 'Business'
+                };
+            }
+            return cat;
+        });
+        setSolutionCategories(importedCategories);
+        
         alert('Data imported successfully!');
     };
 
@@ -86,7 +114,7 @@ const App: React.FC = () => {
             case 'employees':
                 return <EmployeeManagement employees={employees} competences={competences} valueStreams={valueStreams} skills={skills} onAddEmployee={handleAddEmployee} onUpdateEmployee={handleUpdateEmployee} onDeleteEmployee={handleDeleteEmployee} />;
             case 'valueStreams':
-                return <ValueStreamManagement employees={employees} valueStreams={valueStreams} resourceTowers={resourceTowers} costPools={costPools} services={services} onAddValueStream={handleAddValueStream} onUpdateValueStream={handleUpdateValueStream} onDeleteValueStream={handleDeleteValueStream} />;
+                return <ValueStreamManagement employees={employees} valueStreams={valueStreams} resourceTowers={resourceTowers} costPools={costPools} services={services} solutionCategories={solutionCategories} onAddValueStream={handleAddValueStream} onUpdateValueStream={handleUpdateValueStream} onDeleteValueStream={handleDeleteValueStream} />;
             case 'competences':
                 return <CompetenceManagement employees={employees} competences={competences} onAddCompetence={handleAddCompetence} onUpdateCompetence={handleUpdateCompetence} onDeleteCompetence={handleDeleteCompetence} />;
             case 'costPools':
@@ -105,6 +133,8 @@ const App: React.FC = () => {
                 return <CompetencyMap data={appData} />;
             case 'services':
                 return <ServiceManagement services={services} valueStreams={valueStreams} onAddService={handleAddService} onUpdateService={handleUpdateService} onDeleteService={handleDeleteService} />;
+            case 'solutionCategories':
+                return <SolutionCategoryManagement categories={solutionCategories} valueStreams={valueStreams} onAddCategory={handleAddSolutionCategory} onUpdateCategory={handleUpdateSolutionCategory} onDeleteCategory={handleDeleteSolutionCategory} />;
             default:
                 return <Dashboard data={appData} />;
         }

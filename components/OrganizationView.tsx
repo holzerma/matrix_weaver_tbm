@@ -1,9 +1,13 @@
 
 import React, { useState, useRef, useLayoutEffect, useEffect, useMemo, useCallback } from 'react';
-import { AppData, Employee, ValueStream, Competence, Service, CompetenceTeamType } from '../types';
+import { AppData, Employee, ValueStream, Competence, Service, CompetenceTeamType, SolutionType } from '../types';
+import { SOLUTION_TYPES } from '../constants';
 import Card from './common/Card';
 import UserStarIcon from './icons/UserStarIcon';
 import OrgChartIcon from './icons/OrgChartIcon';
+import UsersIcon from './icons/UsersIcon';
+import XCircleIcon from './icons/XCircleIcon';
+import FilterIcon from './icons/FilterIcon';
 
 type Position = { x: number; y: number; width: number; height: number };
 type Positions = Record<string, Position>;
@@ -25,8 +29,35 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
     const [connections, setConnections] = useState<Connection[]>([]);
     const [highlight, setHighlight] = useState<Highlight>({ type: null, id: null });
 
+    // Filter State
+    const [filterCompetenceId, setFilterCompetenceId] = useState<string>('All');
+    const [filterSolutionType, setFilterSolutionType] = useState<SolutionType | 'All'>('All');
+
     const employeeCompetenceMap = useMemo(() => new Map(employees.map(e => [e.id, e.competenceId])), [employees]);
     const serviceMap = useMemo(() => new Map(services.map(s => [s.id, s.name])), [services]);
+
+    // Filter Logic
+    const filteredCompetences = useMemo(() => {
+        return competences.filter(c => {
+            return filterCompetenceId === 'All' || c.id === filterCompetenceId;
+        }).sort((a, b) => a.name.localeCompare(b.name));
+    }, [competences, filterCompetenceId]);
+
+    const filteredValueStreams = useMemo(() => {
+        return valueStreams.filter(vs => {
+            return filterSolutionType === 'All' || vs.solutionType === filterSolutionType;
+        }).sort((a, b) => a.name.localeCompare(b.name));
+    }, [valueStreams, filterSolutionType]);
+
+    const sortedCompetencesList = useMemo(() => {
+        return [...competences].sort((a, b) => a.name.localeCompare(b.name));
+    }, [competences]);
+
+    const hasActiveFilters = filterCompetenceId !== 'All' || filterSolutionType !== 'All';
+    const resetFilters = () => {
+        setFilterCompetenceId('All');
+        setFilterSolutionType('All');
+    };
 
     const setRef = useCallback((id: string, node: HTMLElement | null) => {
         if (node) {
@@ -68,7 +99,7 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
             resizeObserver.disconnect();
             clearTimeout(timeoutId);
         };
-    }, [data]);
+    }, [data, filteredCompetences, filteredValueStreams]); 
 
     useEffect(() => {
         const newConnections: Connection[] = [];
@@ -77,6 +108,7 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
                 const empPos = positions[emp.id];
                 const vsPos = positions[vsId];
 
+                // Only draw connection if both endpoints are visible (exist in positions)
                 if (empPos && vsPos) {
                     const startX = empPos.x + empPos.width / 2;
                     const startY = empPos.y + empPos.height;
@@ -141,6 +173,38 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
             <div className="flex justify-between items-center">
                 <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Organization View</h2>
             </div>
+            
+            <Card className="mb-6">
+                <div className="flex flex-wrap gap-4 items-center">
+                    <div className="flex items-center gap-2 flex-grow md:flex-grow-0">
+                        <FilterIcon className="w-5 h-5 text-slate-500" />
+                        <select
+                            value={filterCompetenceId}
+                            onChange={(e) => setFilterCompetenceId(e.target.value)}
+                            className="block w-full md:w-auto rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pr-8"
+                        >
+                            <option value="All">All Competence Teams</option>
+                            {sortedCompetencesList.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                        </select>
+                    </div>
+                    <div className="flex items-center gap-2 flex-grow md:flex-grow-0">
+                         <select
+                            value={filterSolutionType}
+                            onChange={(e) => setFilterSolutionType(e.target.value as SolutionType | 'All')}
+                            className="block w-full md:w-auto rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pr-8"
+                        >
+                            <option value="All">All Solution Types</option>
+                            {SOLUTION_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                        </select>
+                    </div>
+                    {hasActiveFilters && (
+                        <button onClick={resetFilters} className="flex items-center gap-1 text-sm text-red-600 hover:text-red-700 dark:text-red-400 font-medium whitespace-nowrap ml-auto md:ml-0">
+                            <XCircleIcon className="w-4 h-4" /> Reset
+                        </button>
+                    )}
+                </div>
+            </Card>
+
             <Card>
                 <div className="flex items-start gap-4">
                     <OrgChartIcon className="w-8 h-8 text-indigo-500 dark:text-indigo-400 flex-shrink-0 mt-1" />
@@ -169,72 +233,97 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
                         </g>
                     </svg>
                     <div className="relative z-10 flex flex-col items-center gap-8 md:gap-16">
+                        {/* Competences Row */}
                         <div className="w-full space-y-4">
-                            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 text-center">Competences & Employees</h3>
-                            <div className="flex flex-wrap justify-center gap-4">
-                                {competences.map(competence => (
-                                    <Card 
-                                        key={competence.id}
-                                        className={`w-72 !bg-white/80 dark:!bg-slate-800/80 backdrop-blur-sm transition-all duration-300 ${getCardClasses('competence', competence.id)}`}
-                                        onMouseEnter={() => setHighlight({ type: 'competence', id: competence.id })}
-                                    >
-                                        <div className="flex justify-between items-start mb-1">
-                                            <h4 className="font-bold text-indigo-700 dark:text-indigo-400">{competence.name}</h4>
-                                            <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeBadges[competence.teamType || 'Unassigned']}`}>
-                                                {competence.teamType || 'Unassigned'}
-                                            </span>
-                                        </div>
-                                        {competence.lineTeamName && (
-                                            <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 italic mb-1 uppercase tracking-tight">Line: {competence.lineTeamName}</p>
-                                        )}
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{competence.skill}</p>
-                                        <div className="space-y-2">
-                                            {employees.filter(e => e.competenceId === competence.id).map(emp => (
-                                                <div
-                                                    key={emp.id}
-                                                    ref={el => setRef(emp.id, el)}
-                                                    className={`p-2 rounded-md flex justify-between items-center transition-all duration-200 ${isEmployeeHighlighted(emp) ? 'bg-indigo-100 dark:bg-indigo-900' : 'bg-slate-100 dark:bg-slate-700'}`}
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{emp.name}</span>
-                                                        {emp.isManager && <span title="Manager" className="text-amber-500"><UserStarIcon /></span>}
-                                                    </div>
-                                                    <span className="text-xs text-slate-500 dark:text-slate-400">{emp.role}</span>
+                            <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 text-center">Competences</h3>
+                            {filteredCompetences.length === 0 ? (
+                                <p className="text-center text-slate-500 dark:text-slate-400 italic">No competences match your filters.</p>
+                            ) : (
+                                <div className="flex flex-wrap justify-center gap-4">
+                                    {filteredCompetences.map(competence => {
+                                        const memberCount = employees.filter(e => e.competenceId === competence.id).length;
+                                        return (
+                                            <Card 
+                                                key={competence.id}
+                                                className={`w-72 !bg-white/80 dark:!bg-slate-800/80 backdrop-blur-sm transition-all duration-300 ${getCardClasses('competence', competence.id)}`}
+                                                onMouseEnter={() => setHighlight({ type: 'competence', id: competence.id })}
+                                            >
+                                                <div className="flex justify-between items-start mb-1">
+                                                    <h4 className="font-bold text-indigo-700 dark:text-indigo-400">{competence.name}</h4>
+                                                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${typeBadges[competence.teamType || 'Unassigned']}`}>
+                                                        {competence.teamType || 'Unassigned'}
+                                                    </span>
                                                 </div>
-                                            ))}
-                                        </div>
-                                    </Card>
-                                ))}
-                            </div>
+                                                <div className="flex items-center gap-1.5 mb-1 text-slate-500 dark:text-slate-400">
+                                                    <UsersIcon className="w-3 h-3" />
+                                                    <span className="text-xs font-semibold">{memberCount} Members</span>
+                                                </div>
+                                                {competence.lineTeamName && (
+                                                    <p className="text-[11px] font-semibold text-slate-400 dark:text-slate-500 italic mb-1 uppercase tracking-tight">Line: {competence.lineTeamName}</p>
+                                                )}
+                                                <p className="text-xs text-slate-500 dark:text-slate-400 mb-3">{competence.skill}</p>
+                                                <div className="space-y-2">
+                                                    {employees.filter(e => e.competenceId === competence.id).map(emp => (
+                                                        <div
+                                                            key={emp.id}
+                                                            ref={el => setRef(emp.id, el)}
+                                                            className={`p-2 rounded-md flex justify-between items-center transition-all duration-200 ${isEmployeeHighlighted(emp) ? 'bg-indigo-100 dark:bg-indigo-900' : 'bg-slate-100 dark:bg-slate-700'}`}
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{emp.name}</span>
+                                                                {emp.isManager && <span title="Manager" className="text-amber-500"><UserStarIcon /></span>}
+                                                            </div>
+                                                            <span className="text-xs text-slate-500 dark:text-slate-400">{emp.role}</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </Card>
+                                        );
+                                    })}
+                                </div>
+                            )}
                         </div>
 
+                        {/* Value Streams Row */}
                         <div className="w-full space-y-4">
                              <h3 className="text-xl font-bold text-slate-700 dark:text-slate-200 text-center">Value Streams</h3>
-                            <div className="flex flex-wrap justify-center gap-4">
-                                {valueStreams.map(vs => (
-                                    <div key={vs.id} ref={el => setRef(vs.id, el)} className="w-72">
-                                         <Card
-                                            onMouseEnter={() => setHighlight({ type: 'vs', id: vs.id })}
-                                            className={`h-full !bg-white/80 dark:!bg-slate-800/80 backdrop-blur-sm transition-all duration-300 ${getCardClasses('vs', vs.id)}`}
-                                         >
-                                            <h4 className="font-bold text-green-700 dark:text-green-400">{vs.name}</h4>
-                                            <p className="text-sm text-slate-500 dark:text-slate-400">{vs.description}</p>
-                                            {vs.serviceIds && vs.serviceIds.length > 0 && (
-                                                <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
-                                                    <h5 className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">Provided Services:</h5>
-                                                    <div className="flex flex-wrap gap-1">
-                                                        {vs.serviceIds.map(serviceId => (
-                                                            <span key={serviceId} className="px-2 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 dark:text-gray-100 dark:bg-gray-700 rounded-full">
-                                                                {serviceMap.get(serviceId) || 'Unknown'}
-                                                            </span>
-                                                        ))}
+                             {filteredValueStreams.length === 0 ? (
+                                <p className="text-center text-slate-500 dark:text-slate-400 italic">No solutions match your filters.</p>
+                             ) : (
+                                <div className="flex flex-wrap justify-center gap-4">
+                                    {filteredValueStreams.map(vs => {
+                                        const vsMemberCount = employees.filter(e => e.valueStreamIds.includes(vs.id)).length;
+                                        return (
+                                            <div key={vs.id} ref={el => setRef(vs.id, el)} className="w-72">
+                                                 <Card
+                                                    onMouseEnter={() => setHighlight({ type: 'vs', id: vs.id })}
+                                                    className={`h-full !bg-white/80 dark:!bg-slate-800/80 backdrop-blur-sm transition-all duration-300 ${getCardClasses('vs', vs.id)}`}
+                                                 >
+                                                    <div className="flex justify-between items-start">
+                                                        <h4 className="font-bold text-green-700 dark:text-green-400">{vs.name}</h4>
+                                                        <span className="flex items-center gap-1 text-xs font-semibold text-slate-600 dark:text-slate-300 bg-slate-100 dark:bg-slate-700 px-2 py-1 rounded-full whitespace-nowrap ml-2">
+                                                            <UsersIcon className="w-3 h-3" /> {vsMemberCount}
+                                                        </span>
                                                     </div>
-                                                </div>
-                                            )}
-                                        </Card>
-                                    </div>
-                                ))}
-                            </div>
+                                                    <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">{vs.description}</p>
+                                                    {vs.serviceIds && vs.serviceIds.length > 0 && (
+                                                        <div className="mt-3 pt-3 border-t border-slate-200 dark:border-slate-700">
+                                                            <h5 className="text-xs font-semibold text-slate-600 dark:text-slate-300 mb-2">Provided Services:</h5>
+                                                            <div className="flex flex-wrap gap-1">
+                                                                {vs.serviceIds.map(serviceId => (
+                                                                    <span key={serviceId} className="px-2 py-0.5 text-xs font-semibold text-gray-800 bg-gray-100 dark:text-gray-100 dark:bg-gray-700 rounded-full">
+                                                                        {serviceMap.get(serviceId) || 'Unknown'}
+                                                                    </span>
+                                                                ))}
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </Card>
+                                            </div>
+                                        );
+                                    })}
+                                </div>
+                             )}
                         </div>
                     </div>
                 </div>

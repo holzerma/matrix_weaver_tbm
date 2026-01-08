@@ -50,6 +50,13 @@ export interface Service {
     description: string;
 }
 
+export interface SolutionCategory {
+    id: string;
+    name: string;
+    description: string;
+    type: SolutionType;
+}
+
 export interface ValueStream {
     id: string;
     name: string;
@@ -79,4 +86,5 @@ export interface AppData {
     resourceTowers: ResourceTower[];
     skills: Skill[];
     services: Service[];
+    solutionCategories: SolutionCategory[];
 }

@@ -7,6 +7,7 @@ import PlusIcon from './icons/PlusIcon';
 import EditIcon from './icons/EditIcon';
 import DeleteIcon from './icons/DeleteIcon';
 import CompetenceForm from './ChapterForm';
+import SearchIcon from './icons/SearchIcon';
 
 interface CompetenceManagementProps {
     employees: Employee[];
@@ -26,6 +27,11 @@ const typeBadges: Record<CompetenceTeamType, string> = {
 const CompetenceManagement: React.FC<CompetenceManagementProps> = ({ employees, competences, onAddCompetence, onUpdateCompetence, onDeleteCompetence }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingCompetence, setEditingCompetence] = useState<Competence | null>(null);
+
+    // Filtering & Sorting State
+    const [searchTerm, setSearchTerm] = useState('');
+    const [filterTeamType, setFilterTeamType] = useState('all');
+    const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
     const competenceUsageMap = useMemo(() => {
         const usage = new Map<string, number>();
@@ -70,31 +76,156 @@ const CompetenceManagement: React.FC<CompetenceManagementProps> = ({ employees, 
         setEditingCompetence(null);
     };
 
+    const handleSort = (key: string) => {
+        let direction: 'asc' | 'desc' = 'asc';
+        if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+            direction = 'desc';
+        }
+        setSortConfig({ key, direction });
+    };
+
+    const processedCompetences = useMemo(() => {
+        let result = [...competences];
+
+        // Filtering
+        if (searchTerm) {
+            const lowerTerm = searchTerm.toLowerCase();
+            result = result.filter(c => 
+                c.name.toLowerCase().includes(lowerTerm) || 
+                (c.lineTeamName && c.lineTeamName.toLowerCase().includes(lowerTerm)) ||
+                c.skill.toLowerCase().includes(lowerTerm)
+            );
+        }
+        if (filterTeamType !== 'all') {
+            result = result.filter(c => c.teamType === filterTeamType);
+        }
+
+        // Sorting
+        if (sortConfig) {
+            result.sort((a, b) => {
+                let aVal = '';
+                let bVal = '';
+
+                if (sortConfig.key === 'name') {
+                    aVal = a.name.toLowerCase();
+                    bVal = b.name.toLowerCase();
+                } else if (sortConfig.key === 'lineTeamName') {
+                    aVal = (a.lineTeamName || '').toLowerCase();
+                    bVal = (b.lineTeamName || '').toLowerCase();
+                } else if (sortConfig.key === 'teamType') {
+                    aVal = (a.teamType || '').toLowerCase();
+                    bVal = (b.teamType || '').toLowerCase();
+                } else if (sortConfig.key === 'skill') {
+                    aVal = a.skill.toLowerCase();
+                    bVal = b.skill.toLowerCase();
+                }
+
+                if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
+                if (aVal > bVal) return sortConfig.direction === 'asc' ? 1 : -1;
+                return 0;
+            });
+        }
+
+        return result;
+    }, [competences, searchTerm, filterTeamType, sortConfig]);
+
+    const SortIcon = ({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) => (
+        <span className={`ml-1 inline-block transition-opacity ${active ? 'opacity-100' : 'opacity-20 hover:opacity-50'}`}>
+            {active && direction === 'desc' ? '↓' : '↑'}
+        </span>
+    );
+
     return (
         <div className="space-y-6">
-            <div className="flex justify-between items-center">
-                <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Competence Management</h2>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <h2 className="text-3xl font-bold text-slate-800 dark:text-slate-100">Competence Teams - Line Teams</h2>
                 <button onClick={handleAddNew} className="flex items-center space-x-2 px-4 py-2 bg-indigo-600 text-white rounded-lg shadow-md hover:bg-indigo-700 transition-colors">
                     <PlusIcon className="w-5 h-5" />
                     <span>Add Competence</span>
                 </button>
             </div>
 
+            <Card className="space-y-4">
+                 <div className="flex flex-col md:flex-row gap-4">
+                    <div className="relative flex-grow">
+                         <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                            <SearchIcon className="w-5 h-5 text-slate-400" />
+                        </div>
+                        <input
+                            type="text"
+                            placeholder="Search by name, line team, or skill..."
+                            value={searchTerm}
+                            onChange={(e) => setSearchTerm(e.target.value)}
+                            className="pl-10 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2"
+                        />
+                    </div>
+                    <div className="relative min-w-[200px]">
+                        <select
+                            value={filterTeamType}
+                            onChange={(e) => setFilterTeamType(e.target.value)}
+                            className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
+                        >
+                            <option value="all">All Team Types</option>
+                            {Object.keys(typeBadges).map(type => (
+                                <option key={type} value={type}>{type}</option>
+                            ))}
+                        </select>
+                    </div>
+                </div>
+            </Card>
+
             <Card className="!p-0">
                 <div className="overflow-x-auto">
                     <table className="min-w-full divide-y divide-slate-200 dark:divide-slate-700">
                         <thead className="bg-slate-50 dark:bg-slate-800">
                             <tr>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Name</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Line Team</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Team Type</th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Core Skill</th>
+                                <th 
+                                    scope="col" 
+                                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    onClick={() => handleSort('name')}
+                                >
+                                    <div className="flex items-center">
+                                        Name
+                                        <SortIcon active={sortConfig?.key === 'name'} direction={sortConfig?.direction || 'asc'} />
+                                    </div>
+                                </th>
+                                <th 
+                                    scope="col" 
+                                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    onClick={() => handleSort('lineTeamName')}
+                                >
+                                    <div className="flex items-center">
+                                        Line Team
+                                        <SortIcon active={sortConfig?.key === 'lineTeamName'} direction={sortConfig?.direction || 'asc'} />
+                                    </div>
+                                </th>
+                                <th 
+                                    scope="col" 
+                                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    onClick={() => handleSort('teamType')}
+                                >
+                                     <div className="flex items-center">
+                                        Team Type
+                                        <SortIcon active={sortConfig?.key === 'teamType'} direction={sortConfig?.direction || 'asc'} />
+                                    </div>
+                                </th>
+                                <th 
+                                    scope="col" 
+                                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    onClick={() => handleSort('skill')}
+                                >
+                                     <div className="flex items-center">
+                                        Core Skill
+                                        <SortIcon active={sortConfig?.key === 'skill'} direction={sortConfig?.direction || 'asc'} />
+                                    </div>
+                                </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Members</th>
                                 <th scope="col" className="px-6 py-3 text-right text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Actions</th>
                             </tr>
                         </thead>
                         <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
-                            {competences.map(comp => (
+                            {processedCompetences.length > 0 ? (
+                                processedCompetences.map(comp => (
                                 <tr key={comp.id}>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">{comp.name}</td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-600 dark:text-slate-400 font-medium italic">{comp.lineTeamName || 'N/A'}</td>
@@ -116,7 +247,14 @@ const CompetenceManagement: React.FC<CompetenceManagementProps> = ({ employees, 
                                         </div>
                                     </td>
                                 </tr>
-                            ))}
+                            ))
+                            ) : (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                                        No competence teams found matching your filters.
+                                    </td>
+                                </tr>
+                            )}
                         </tbody>
                     </table>
                 </div>

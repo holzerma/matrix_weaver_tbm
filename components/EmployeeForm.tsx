@@ -69,10 +69,6 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, competences, valu
             const newVsIds = prev.valueStreamIds.includes(vsId)
                 ? prev.valueStreamIds.filter(id => id !== vsId)
                 : [...prev.valueStreamIds, vsId];
-            if (newVsIds.length > 2) {
-                alert("An employee can contribute to a maximum of 2 Value Streams.");
-                return prev;
-            }
             return { ...prev, valueStreamIds: newVsIds };
         });
     };
@@ -147,7 +143,7 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, competences, valu
                 </select>
             </div>
             <div>
-                <label className={labelClasses}>Value Streams (Max 2)</label>
+                <label className={labelClasses}>Value Streams</label>
                 <div className="mt-2 grid grid-cols-1 sm:grid-cols-2 gap-2 max-h-40 overflow-y-auto p-2 border border-slate-300 dark:border-slate-600 rounded-md">
                     {valueStreams.map(vs => (
                         <label key={vs.id} className="flex items-center space-x-2 text-sm text-slate-800 dark:text-slate-200">

@@ -4,81 +4,81 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Matrix Weaver TBM Edition</title>
+    <!-- Keeping Tailwind CDN for simplicity in migration, though moving to a build step is recommended later -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      @media print {
+        body {
+          background-color: white !important;
+        }
+        .no-print {
+          display: none !important;
+        }
+        
+        /* Force light theme styles for printing */
+        .dark .dark\:bg-slate-800, .dark .dark\:bg-slate-900, .dark .dark\:bg-indigo-900, .dark .dark\:bg-sky-900, .dark .dark\:bg-amber-900 {
+          background-color: white !important;
+        }
+        .dark .bg-slate-50.dark\:bg-slate-800 {
+          background-color: #f8fafc !important; /* slate-50 */
+        }
+        .dark .bg-white.dark\:bg-slate-900 {
+          background-color: white !important;
+        }
+
+        .dark .dark\:text-slate-100, .dark .dark\:text-slate-200, .dark .dark\:text-slate-300, .dark .dark\:text-indigo-200, .dark .dark\:text-sky-200, .dark .dark\:text-amber-200, .dark .dark\:text-indigo-100 {
+          color: #1e293b !important; /* slate-800 */
+        }
+        .dark .dark\:text-slate-400 {
+           color: #64748b !important; /* slate-500 */
+        }
+        .dark .dark\:text-indigo-400 {
+          color: #4f46e5 !important; /* indigo-600 */
+        }
+         .dark .dark\:text-green-400 {
+          color: #16a34a !important; /* green-600 */
+        }
+
+        .dark .dark\:border-slate-700, .dark .dark\:border-slate-600, .dark .dark\:border-slate-800 {
+          border-color: #e2e8f0 !important; /* slate-200 */
+        }
+
+        /* General layout adjustments */
+        .shadow-md, .shadow-2xl {
+          box-shadow: none !important;
+        }
+        .rounded-xl, .rounded-lg {
+          border: 1px solid #e2e8f0 !important; /* slate-200 */
+        }
+        
+        /* Ensure charts are visible and colored correctly */
+        .recharts-surface, .recharts-wrapper, svg {
+          -webkit-print-color-adjust: exact !important;
+          print-color-adjust: exact !important;
+        }
+
+        /* Prevent content from breaking across pages where possible */
+        .grid, .card, table, tr {
+            page-break-inside: avoid;
+        }
+        h2, h3 {
+            page-break-after: avoid;
+        }
+        
+      }
+    </style>
   <script type="importmap">
 {
   "imports": {
-    "react": "https://esm.sh/react@18.3.1",
-    "react/jsx-runtime": "https://esm.sh/react@18.3.1/jsx-runtime",
-    "react-dom": "https://esm.sh/react-dom@18.3.1",
-    "react-dom/client": "https://esm.sh/react-dom@18.3.1/client",
-    "recharts": "https://esm.sh/recharts@2.12.7",
-    "react-dom/": "https://aistudiocdn.com/react-dom@^19.2.0/",
-    "react/": "https://aistudiocdn.com/react@^19.2.0/"
+    "recharts": "https://esm.sh/recharts@^3.6.0",
+    "vite": "https://esm.sh/vite@^7.3.1",
+    "react/": "https://esm.sh/react@^19.2.3/",
+    "react": "https://esm.sh/react@^19.2.3",
+    "@vitejs/plugin-react": "https://esm.sh/@vitejs/plugin-react@^5.1.2",
+    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
   }
 }
 </script>
-<style>
-  @media print {
-    body {
-      background-color: white !important;
-    }
-    .no-print {
-      display: none !important;
-    }
-    
-    /* Force light theme styles for printing */
-    .dark .dark\:bg-slate-800, .dark .dark\:bg-slate-900, .dark .dark\:bg-indigo-900, .dark .dark\:bg-sky-900, .dark .dark\:bg-amber-900 {
-      background-color: white !important;
-    }
-    .dark .bg-slate-50.dark\:bg-slate-800 {
-      background-color: #f8fafc !important; /* slate-50 */
-    }
-    .dark .bg-white.dark\:bg-slate-900 {
-      background-color: white !important;
-    }
-
-    .dark .dark\:text-slate-100, .dark .dark\:text-slate-200, .dark .dark\:text-slate-300, .dark .dark\:text-indigo-200, .dark .dark\:text-sky-200, .dark .dark\:text-amber-200, .dark .dark\:text-indigo-100 {
-      color: #1e293b !important; /* slate-800 */
-    }
-    .dark .dark\:text-slate-400 {
-       color: #64748b !important; /* slate-500 */
-    }
-    .dark .dark\:text-indigo-400 {
-      color: #4f46e5 !important; /* indigo-600 */
-    }
-     .dark .dark\:text-green-400 {
-      color: #16a34a !important; /* green-600 */
-    }
-
-    .dark .dark\:border-slate-700, .dark .dark\:border-slate-600, .dark .dark\:border-slate-800 {
-      border-color: #e2e8f0 !important; /* slate-200 */
-    }
-
-    /* General layout adjustments */
-    .shadow-md, .shadow-2xl {
-      box-shadow: none !important;
-    }
-    .rounded-xl, .rounded-lg {
-      border: 1px solid #e2e8f0 !important; /* slate-200 */
-    }
-    
-    /* Ensure charts are visible and colored correctly */
-    .recharts-surface, .recharts-wrapper, svg {
-      -webkit-print-color-adjust: exact !important;
-      print-color-adjust: exact !important;
-    }
-
-    /* Prevent content from breaking across pages where possible */
-    .grid, .card, table, tr {
-        page-break-inside: avoid;
-    }
-    h2, h3 {
-        page-break-after: avoid;
-    }
-    
-  }
-</style>
 </head>
   <body class="bg-slate-100 dark:bg-slate-900">
     <div id="root"></div>

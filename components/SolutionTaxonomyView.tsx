@@ -1,12 +1,15 @@
+
 import React, { useMemo, useState } from 'react';
 import { AppData, ValueStream, Service, SolutionType } from '../types';
 import Card from './common/Card';
 import SitemapIcon from './icons/SitemapIcon';
+import UsersIcon from './icons/UsersIcon';
 
 interface SolutionTaxonomyViewProps {
     data: AppData;
 }
 
+// Taxonomy node structure
 type TaxonomyNode = {
     [key in SolutionType]?: {
         [category: string]: ValueStream[];
@@ -37,13 +40,104 @@ const Tooltip: React.FC<{ item: ValueStream | Service | null, position: { top: n
 };
 
 const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => {
-    const { valueStreams, services } = data;
+    const { employees, valueStreams, services, solutionCategories } = data;
     const [hoveredItem, setHoveredItem] = useState<{ item: ValueStream | Service; position: { top: number; left: number } } | null>(null);
 
     const serviceMap = useMemo(() => new Map(services.map(s => [s.id, s])), [services]);
 
+    const stats = useMemo(() => {
+        // Headcount Sets (Unique People)
+        const typeHC = new Map<string, Set<string>>();
+        const categoryHC = new Map<string, Set<string>>();
+        const solutionHC = new Map<string, Set<string>>();
+
+        // Assignment Counts (Total Roles Filled)
+        const typeAssignments = new Map<string, number>();
+        const categoryAssignments = new Map<string, number>();
+        
+        // FTE Sums (Capacity)
+        const typeFTE = new Map<string, number>();
+        const categoryFTE = new Map<string, number>();
+        const solutionFTE = new Map<string, number>();
+
+        employees.forEach(emp => {
+            const assignmentCount = emp.valueStreamIds.length;
+            if (assignmentCount === 0) return;
+
+            // Calculate FTE contribution per value stream (equal split)
+            const fteContribution = 1 / assignmentCount;
+
+            emp.valueStreamIds.forEach(vsId => {
+                const vs = valueStreams.find(v => v.id === vsId);
+                if (vs) {
+                    // --- Headcount (Reach) Calculation ---
+                    
+                    // Solution Level
+                    if (!solutionHC.has(vs.id)) solutionHC.set(vs.id, new Set());
+                    solutionHC.get(vs.id)!.add(emp.id);
+
+                    // Category Level
+                    const catKey = `${vs.solutionType}:${vs.solutionCategory}`;
+                    if (!categoryHC.has(catKey)) categoryHC.set(catKey, new Set());
+                    categoryHC.get(catKey)!.add(emp.id);
+
+                    // Type Level
+                    if (!typeHC.has(vs.solutionType)) typeHC.set(vs.solutionType, new Set());
+                    typeHC.get(vs.solutionType)!.add(emp.id);
+
+                    // --- Assignments (Volume) Calculation ---
+                    // Increment for every role occurrence
+                    categoryAssignments.set(catKey, (categoryAssignments.get(catKey) || 0) + 1);
+                    typeAssignments.set(vs.solutionType, (typeAssignments.get(vs.solutionType) || 0) + 1);
+
+                    // --- FTE (Capacity) Calculation ---
+                    
+                    // Solution Level
+                    solutionFTE.set(vs.id, (solutionFTE.get(vs.id) || 0) + fteContribution);
+
+                    // Category Level
+                    categoryFTE.set(catKey, (categoryFTE.get(catKey) || 0) + fteContribution);
+
+                    // Type Level
+                    typeFTE.set(vs.solutionType, (typeFTE.get(vs.solutionType) || 0) + fteContribution);
+                }
+            });
+        });
+
+        return {
+            getTypeStats: (type: string) => ({
+                headcount: typeHC.get(type)?.size || 0,
+                assignments: typeAssignments.get(type) || 0,
+                fte: typeFTE.get(type) || 0
+            }),
+            getCategoryStats: (type: string, category: string) => ({
+                headcount: categoryHC.get(`${type}:${category}`)?.size || 0,
+                assignments: categoryAssignments.get(`${type}:${category}`) || 0,
+                fte: categoryFTE.get(`${type}:${category}`) || 0
+            }),
+            getSolutionStats: (vsId: string) => ({
+                headcount: solutionHC.get(vsId)?.size || 0,
+                fte: solutionFTE.get(vsId) || 0
+            }),
+        };
+    }, [employees, valueStreams]);
+
     const taxonomy = useMemo(() => {
         const result: TaxonomyNode = {};
+        
+        // 1. Initialize structure based on defined categories
+        solutionCategories.forEach(cat => {
+            if (cat.type) {
+                if (!result[cat.type]) {
+                    result[cat.type] = {};
+                }
+                if (!result[cat.type]![cat.name]) {
+                    result[cat.type]![cat.name] = [];
+                }
+            }
+        });
+
+        // 2. Populate with Value Streams
         valueStreams.forEach(vs => {
             const { solutionType, solutionCategory } = vs;
             if (!result[solutionType]) {
@@ -54,8 +148,9 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
             }
             result[solutionType]![solutionCategory].push(vs);
         });
+        
         return result;
-    }, [valueStreams]);
+    }, [valueStreams, solutionCategories]);
 
     const handleMouseEnter = (item: ValueStream | Service, e: React.MouseEvent) => {
         setHoveredItem({ item, position: { top: e.clientY, left: e.clientX } });
@@ -73,63 +168,132 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
             <Card>
                 <div className="flex items-start gap-4">
                     <SitemapIcon className="w-8 h-8 text-indigo-500 dark:text-indigo-400 flex-shrink-0 mt-1" />
-                    <div>
-                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Solution Hierarchy</h3>
+                    <div className="space-y-1">
+                        <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Solution Hierarchy & Resource Metrics</h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                            This diagram shows the full TBM solution hierarchy, from the high-level Solution Type down to the specific Services (Offerings) provided. Hover over any item to see its description.
+                            This diagram shows the TBM solution hierarchy with three key resource metrics:
                         </p>
+                        <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 ml-2">
+                            <li><strong>Unique:</strong> The number of distinct individuals involved (Reach). <em>"How many people?"</em></li>
+                            <li><strong>Roles:</strong> The total number of positions filled. If one person is in two solutions, they count as 2 Roles but 1 Unique. <em>"How many seats?"</em></li>
+                            <li><strong>FTE:</strong> Full-Time Equivalent capacity, splitting an employee's time equally across their assignments. <em>"How much effort?"</em></li>
+                        </ul>
                     </div>
                 </div>
             </Card>
 
             <div className="space-y-8">
-                {Object.entries(taxonomy).map(([type, categories]) => (
-                    <div key={type} className={`p-4 border-l-4 ${typeColors[type as SolutionType]}`}>
-                        <h3 className="text-2xl font-bold">{type}</h3>
-                        <div className="mt-4 space-y-4">
-                            {Object.entries(categories).map(([category, solutions]) => (
-                                <div key={category} className="pl-4">
-                                    <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-300">{category}</h4>
-                                    <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                        {solutions.map(solution => (
-                                            <div
-                                                key={solution.id}
-                                                className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200"
-                                                onMouseEnter={(e) => handleMouseEnter(solution, e)}
-                                                onMouseLeave={handleMouseLeave}
-                                            >
-                                                <p className="font-bold text-indigo-700 dark:text-indigo-400">{solution.name}</p>
-                                                <div className="mt-2 pt-2 border-t border-slate-200 dark:border-slate-700">
-                                                    <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Services / Offerings:</h5>
-                                                    {solution.serviceIds && solution.serviceIds.length > 0 ? (
-                                                        <div className="flex flex-wrap gap-2">
-                                                            {solution.serviceIds.map(serviceId => {
-                                                                const service = serviceMap.get(serviceId);
-                                                                if (!service) return null;
-                                                                return (
-                                                                    <span
-                                                                        key={serviceId}
-                                                                        className="px-2.5 py-1 text-xs font-semibold text-gray-800 bg-gray-100 dark:text-gray-100 dark:bg-gray-700 rounded-full cursor-default"
-                                                                        onMouseEnter={(e) => handleMouseEnter(service, e)}
-                                                                        onMouseLeave={handleMouseLeave}
-                                                                    >
-                                                                        {service.name}
-                                                                    </span>
-                                                                );
-                                                            })}
-                                                        </div>
-                                                    ) : (
-                                                        <p className="text-xs text-slate-400 italic">No services defined</p>
-                                                    )}
-                                                </div>
-                                            </div>
-                                        ))}
+                {Object.entries(taxonomy).map(([type, categories]) => {
+                    const typeStats = stats.getTypeStats(type);
+                    const isSplit = typeStats.assignments > typeStats.headcount;
+                    
+                    return (
+                        <div key={type} className={`p-4 border-l-4 ${typeColors[type as SolutionType] || 'bg-gray-100 border-gray-300'}`}>
+                            <h3 className="text-2xl font-bold text-slate-800 dark:text-slate-100 flex items-center gap-3">
+                                {type}
+                                <div 
+                                    className="text-sm font-medium text-slate-600 dark:text-slate-300 bg-white/60 dark:bg-black/20 px-3 py-1 rounded-full flex items-center gap-2 border border-slate-200 dark:border-slate-700/50 cursor-help shadow-sm"
+                                    title={`Reach: ${typeStats.headcount} unique individuals\nVolume: ${typeStats.assignments} total roles filled\nCapacity: ${typeStats.fte.toFixed(1)} FTE`}
+                                >
+                                    <div className="flex items-center gap-1">
+                                        <UsersIcon className="w-4 h-4" /> 
+                                        <span>{typeStats.headcount} Unique</span>
                                     </div>
+                                    {isSplit && (
+                                        <span className="text-slate-400 border-l border-slate-300 dark:border-slate-600 pl-2">
+                                            {typeStats.assignments} Roles
+                                        </span>
+                                    )}
+                                    <span className="text-slate-400 border-l border-slate-300 dark:border-slate-600 pl-2">
+                                        {typeStats.fte.toFixed(1)} FTE
+                                    </span>
                                 </div>
-                            ))}
+                            </h3>
+                            <div className="mt-4 space-y-4">
+                                {Object.entries(categories).sort((a,b) => a[0].localeCompare(b[0])).map(([category, solutions]) => {
+                                    const catStats = stats.getCategoryStats(type, category);
+                                    const isCatSplit = catStats.assignments > catStats.headcount;
+
+                                    return (
+                                        <div key={category} className="pl-4">
+                                            <h4 className="text-lg font-semibold text-slate-700 dark:text-slate-300 border-b border-slate-200 dark:border-slate-700 pb-1 mb-2 inline-flex items-center gap-3">
+                                                {category}
+                                                <div 
+                                                    className="text-xs font-medium text-slate-600 dark:text-slate-400 bg-slate-200 dark:bg-slate-700 px-2 py-0.5 rounded-full flex items-center gap-2 cursor-help"
+                                                    title={`Reach: ${catStats.headcount} unique individuals\nVolume: ${catStats.assignments} total roles filled\nCapacity: ${catStats.fte.toFixed(1)} FTE`}
+                                                >
+                                                     <div className="flex items-center gap-1">
+                                                        <UsersIcon className="w-3 h-3" /> 
+                                                        <span>{catStats.headcount}</span>
+                                                    </div>
+                                                    {isCatSplit && (
+                                                        <span className="opacity-75 border-l border-slate-400 pl-2">
+                                                            {catStats.assignments} Roles
+                                                        </span>
+                                                    )}
+                                                    <span className="opacity-75 border-l border-slate-400 pl-2">
+                                                        {catStats.fte.toFixed(1)} FTE
+                                                    </span>
+                                                </div>
+                                            </h4>
+                                            
+                                            {solutions.length === 0 ? (
+                                                <p className="text-sm text-slate-400 italic pl-2">No solutions defined.</p>
+                                            ) : (
+                                                <div className="mt-2 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                                    {solutions.map(solution => {
+                                                        const solStats = stats.getSolutionStats(solution.id);
+                                                        return (
+                                                            <div
+                                                                key={solution.id}
+                                                                className="bg-white dark:bg-slate-800 p-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm hover:shadow-lg hover:border-indigo-400 dark:hover:border-indigo-500 transition-all duration-200"
+                                                                onMouseEnter={(e) => handleMouseEnter(solution, e)}
+                                                                onMouseLeave={handleMouseLeave}
+                                                            >
+                                                                <div className="flex justify-between items-start mb-2">
+                                                                    <p className="font-bold text-indigo-700 dark:text-indigo-400 leading-tight">{solution.name}</p>
+                                                                    <span 
+                                                                        className="flex items-center gap-1 text-xs font-medium text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded ml-2 whitespace-nowrap cursor-help"
+                                                                        title={`${solStats.headcount} people | ${solStats.fte.toFixed(1)} FTE`}
+                                                                    >
+                                                                        <UsersIcon className="w-3 h-3" /> {solStats.headcount} ({solStats.fte.toFixed(1)} FTE)
+                                                                    </span>
+                                                                </div>
+                                                                <div className="pt-2 border-t border-slate-200 dark:border-slate-700">
+                                                                    <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">Services / Offerings:</h5>
+                                                                    {solution.serviceIds && solution.serviceIds.length > 0 ? (
+                                                                        <div className="flex flex-wrap gap-2">
+                                                                            {solution.serviceIds.map(serviceId => {
+                                                                                const service = serviceMap.get(serviceId);
+                                                                                if (!service) return null;
+                                                                                return (
+                                                                                    <span
+                                                                                        key={serviceId}
+                                                                                        className="px-2.5 py-1 text-xs font-semibold text-gray-800 bg-gray-100 dark:text-gray-100 dark:bg-gray-700 rounded-full cursor-default"
+                                                                                        onMouseEnter={(e) => handleMouseEnter(service, e)}
+                                                                                        onMouseLeave={handleMouseLeave}
+                                                                                    >
+                                                                                        {service.name}
+                                                                                    </span>
+                                                                                );
+                                                                            })}
+                                                                        </div>
+                                                                    ) : (
+                                                                        <p className="text-xs text-slate-400 italic">No services defined</p>
+                                                                    )}
+                                                                </div>
+                                                            </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </div>
             {hoveredItem && <Tooltip item={hoveredItem.item} position={hoveredItem.position} />}
         </div>
