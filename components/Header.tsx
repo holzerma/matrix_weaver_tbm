@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect, useRef } from 'react';
-import { AppData, Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service } from '../types';
+import { AppData, Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service, FunctionalTeam, SolutionCategory, SolutionTypeDefinition } from '../types';
 import ChartBarIcon from './icons/ChartBarIcon';
 import UsersIcon from './icons/UsersIcon';
 import StreamIcon from './icons/StreamIcon';
@@ -88,6 +88,9 @@ type SearchResult = {
     resourceTowers: ResourceTower[];
     skills: Skill[];
     services: Service[];
+    functionalTeams: FunctionalTeam[];
+    solutionCategories: SolutionCategory[];
+    solutionTypes: SolutionTypeDefinition[];
 }
 
 const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearchSelect }) => {
@@ -141,6 +144,20 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                     s.name.toLowerCase().includes(lowerCaseQuery) ||
                     s.description.toLowerCase().includes(lowerCaseQuery)
                 ),
+                functionalTeams: appData.functionalTeams.filter(ft =>
+                    ft.name.toLowerCase().includes(lowerCaseQuery) ||
+                    ft.description.toLowerCase().includes(lowerCaseQuery) ||
+                    ft.operatingModel.toLowerCase().includes(lowerCaseQuery)
+                ),
+                solutionCategories: appData.solutionCategories.filter(sc =>
+                    sc.name.toLowerCase().includes(lowerCaseQuery) ||
+                    sc.description.toLowerCase().includes(lowerCaseQuery) ||
+                    (sc.type && sc.type.toLowerCase().includes(lowerCaseQuery))
+                ),
+                solutionTypes: (appData.solutionTypes || []).filter(st =>
+                    st.name.toLowerCase().includes(lowerCaseQuery) ||
+                    st.description.toLowerCase().includes(lowerCaseQuery)
+                ),
             };
             setSearchResults(results);
         };
@@ -175,7 +192,6 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
         setOpenMenu(null);
     };
 
-    // FIX: Replaced reduce with direct summation for type safety and clarity to fix an 'unknown' type error on totalResults.
     const totalResults = searchResults ?
         searchResults.employees.length +
         searchResults.valueStreams.length +
@@ -183,7 +199,10 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
         searchResults.costPools.length +
         searchResults.resourceTowers.length +
         searchResults.skills.length +
-        searchResults.services.length
+        searchResults.services.length +
+        searchResults.functionalTeams.length +
+        searchResults.solutionCategories.length +
+        searchResults.solutionTypes.length
         : 0;
     
     const renderNavItem = (item: NavItem) => {
@@ -285,6 +304,18 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                                                     <ul>{searchResults.employees.map(e => <li key={e.id} onClick={() => handleResultClick('employees')} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">{e.name} <span className="text-slate-500 dark:text-slate-400">- {e.role}</span></li>)}</ul>
                                                 </div>
                                             )}
+                                            {searchResults?.functionalTeams.length > 0 && (
+                                                <div>
+                                                    <h3 className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 p-3 bg-slate-50 dark:bg-slate-900/50">Functional Teams</h3>
+                                                    <ul>{searchResults.functionalTeams.map(ft => <li key={ft.id} onClick={() => handleResultClick('functionalTeams')} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">{ft.name} <span className="text-slate-500 dark:text-slate-400 text-xs">- {ft.operatingModel}</span></li>)}</ul>
+                                                </div>
+                                            )}
+                                            {searchResults?.competences.length > 0 && (
+                                                <div>
+                                                    <h3 className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 p-3 bg-slate-50 dark:bg-slate-900/50">Competences</h3>
+                                                    <ul>{searchResults.competences.map(c => <li key={c.id} onClick={() => handleResultClick('competences')} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">{c.name}</li>)}</ul>
+                                                </div>
+                                            )}
                                             {searchResults?.valueStreams.length > 0 && (
                                                 <div>
                                                     <h3 className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 p-3 bg-slate-50 dark:bg-slate-900/50">Solutions</h3>
@@ -297,10 +328,16 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                                                     <ul>{searchResults.services.map(s => <li key={s.id} onClick={() => handleResultClick('services')} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">{s.name}</li>)}</ul>
                                                 </div>
                                             )}
-                                            {searchResults?.competences.length > 0 && (
+                                            {searchResults?.solutionCategories.length > 0 && (
                                                 <div>
-                                                    <h3 className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 p-3 bg-slate-50 dark:bg-slate-900/50">Competences</h3>
-                                                    <ul>{searchResults.competences.map(c => <li key={c.id} onClick={() => handleResultClick('competences')} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">{c.name}</li>)}</ul>
+                                                    <h3 className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 p-3 bg-slate-50 dark:bg-slate-900/50">Solution Categories</h3>
+                                                    <ul>{searchResults.solutionCategories.map(sc => <li key={sc.id} onClick={() => handleResultClick('solutionCategories')} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">{sc.name} <span className="text-slate-500 dark:text-slate-400 text-xs">({sc.type})</span></li>)}</ul>
+                                                </div>
+                                            )}
+                                            {searchResults?.solutionTypes.length > 0 && (
+                                                <div>
+                                                    <h3 className="text-xs font-semibold uppercase text-slate-400 dark:text-slate-500 p-3 bg-slate-50 dark:bg-slate-900/50">Solution Types</h3>
+                                                    <ul>{searchResults.solutionTypes.map(st => <li key={st.id} onClick={() => handleResultClick('solutionTypes')} className="p-3 hover:bg-indigo-50 dark:hover:bg-indigo-900/50 cursor-pointer text-sm font-medium text-slate-700 dark:text-slate-200">{st.name}</li>)}</ul>
                                                 </div>
                                             )}
                                              {searchResults?.skills.length > 0 && (
