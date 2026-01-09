@@ -43,6 +43,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
     const [filterType, setFilterType] = useState('all');
     const [filterCompetence, setFilterCompetence] = useState('all');
     const [filterValueStream, setFilterValueStream] = useState('all');
+    const [filterFunctionalTeam, setFilterFunctionalTeam] = useState('all');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
     const competenceMap = useMemo(() => new Map(competences.map(ch => [ch.id, ch.name])), [competences]);
@@ -58,6 +59,10 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
     const sortedValueStreams = useMemo(() => {
         return [...valueStreams].sort((a, b) => a.name.localeCompare(b.name));
     }, [valueStreams]);
+
+    const sortedFunctionalTeams = useMemo(() => {
+        return [...functionalTeams].sort((a, b) => a.name.localeCompare(b.name));
+    }, [functionalTeams]);
 
     const handleAddNew = () => {
         setEditingEmployee(null);
@@ -118,6 +123,9 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
         if (filterValueStream !== 'all') {
             result = result.filter(e => e.valueStreamIds.includes(filterValueStream));
         }
+        if (filterFunctionalTeam !== 'all') {
+            result = result.filter(e => e.functionalTeamIds && e.functionalTeamIds.includes(filterFunctionalTeam));
+        }
 
         // Sorting
         if (sortConfig) {
@@ -146,7 +154,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
         }
 
         return result;
-    }, [employees, searchTerm, filterType, filterCompetence, filterValueStream, sortConfig, competenceMap]);
+    }, [employees, searchTerm, filterType, filterCompetence, filterValueStream, filterFunctionalTeam, sortConfig, competenceMap]);
 
     const SortIcon = ({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) => (
         <span className={`ml-1 inline-block transition-opacity ${active ? 'opacity-100' : 'opacity-20 hover:opacity-50'}`}>
@@ -196,7 +204,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                 onChange={(e) => setFilterCompetence(e.target.value)}
                                 className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
                             >
-                                <option value="all">All Competences</option>
+                                <option value="all">All Competence Teams</option>
                                 {sortedCompetences.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                             </select>
                         </div>
@@ -206,8 +214,18 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                 onChange={(e) => setFilterValueStream(e.target.value)}
                                 className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
                             >
-                                <option value="all">All Solutions</option>
+                                <option value="all">All Value Streams/Solutions</option>
                                 {sortedValueStreams.map(vs => <option key={vs.id} value={vs.id}>{vs.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="relative min-w-[200px]">
+                            <select
+                                value={filterFunctionalTeam}
+                                onChange={(e) => setFilterFunctionalTeam(e.target.value)}
+                                className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
+                            >
+                                <option value="all">All Functional Teams</option>
+                                {sortedFunctionalTeams.map(ft => <option key={ft.id} value={ft.id}>{ft.name}</option>)}
                             </select>
                         </div>
                     </div>
@@ -255,7 +273,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                     onClick={() => handleSort('competence')}
                                 >
                                      <div className="flex items-center">
-                                        Competence
+                                        Competence Teams
                                         <SortIcon active={sortConfig?.key === 'competence'} direction={sortConfig?.direction || 'asc'} />
                                     </div>
                                 </th>
@@ -288,7 +306,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                         <div className="flex flex-col gap-1">
                                             {emp.valueStreamIds.length > 0 && (
                                                 <div className="flex flex-wrap gap-1">
-                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Solutions:</span>
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Value Streams:</span>
                                                     {emp.valueStreamIds.map(vsId => (
                                                         <span key={vsId} className="px-2 py-0.5 text-[10px] font-semibold text-indigo-800 bg-indigo-100 dark:text-indigo-100 dark:bg-indigo-900 rounded-full">
                                                             {valueStreamMap.get(vsId) || 'Unknown'}
@@ -298,7 +316,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                             )}
                                             {(emp.functionalTeamIds && emp.functionalTeamIds.length > 0) && (
                                                 <div className="flex flex-wrap gap-1 mt-1">
-                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Teams:</span>
+                                                    <span className="text-xs font-semibold text-gray-500 uppercase">Functional Teams:</span>
                                                     {emp.functionalTeamIds.map(ftId => (
                                                         <span key={ftId} className="px-2 py-0.5 text-[10px] font-semibold text-pink-800 bg-pink-100 dark:text-pink-100 dark:bg-pink-900 rounded-full">
                                                             {functionalTeamMap.get(ftId) || 'Unknown'}

@@ -1,7 +1,7 @@
 
 import { Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service, SolutionType, SolutionCategory, SolutionTypeDefinition, FunctionalTeam } from './types';
 
-export const APP_VERSION = '1.7.0';
+export const APP_VERSION = '1.8.0';
 
 export const SKILL_CATEGORIES = [
     'Frontend Development',
@@ -100,10 +100,10 @@ export const initialSkills: Skill[] = [
 ];
 
 export const initialFunctionalTeams: FunctionalTeam[] = [
-    { id: 'ft_1', name: 'Mobile Payments Squad', description: 'Focused on iOS and Android payment integrations.', type: 'Product', operatingModel: 'Scrum' },
-    { id: 'ft_2', name: 'Core Infrastructure Crew', description: 'Maintains underlying Kubernetes clusters and networking.', type: 'Service', operatingModel: 'Kanban' },
-    { id: 'ft_3', name: 'Data Migration Project', description: 'Temporary team for legacy DB migration.', type: 'Service', operatingModel: 'Project' },
-    { id: 'ft_4', name: 'AI Research Lab', description: 'Experimental team for GenAI applications.', type: 'Product', operatingModel: 'Scrum' }
+    { id: 'ft_1', name: 'Mobile Payments Squad', description: 'Focused on iOS and Android payment integrations.', type: 'Product', operatingModel: 'Scrum', valueStreamIds: ['vs_biz_pm_1'] },
+    { id: 'ft_2', name: 'Core Infrastructure Crew', description: 'Maintains underlying Kubernetes clusters and networking.', type: 'Service', operatingModel: 'Kanban', valueStreamIds: ['vs_inf_cmp_4'] },
+    { id: 'ft_3', name: 'Data Migration Project', description: 'Temporary team for legacy DB migration.', type: 'Service', operatingModel: 'Project', valueStreamIds: ['vs_del_dev_3'] },
+    { id: 'ft_4', name: 'AI Research Lab', description: 'Experimental team for GenAI applications.', type: 'Product', operatingModel: 'Scrum', valueStreamIds: ['vs_ai_gen_1'] }
 ];
 
 export const initialEmployees: Employee[] = [

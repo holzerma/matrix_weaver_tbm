@@ -43,7 +43,6 @@ const TypeSection: React.FC<{
     [categories, typeDef]);
 
     const serviceMap = useMemo(() => new Map(services.map(s => [s.id, s])), [services]);
-    const ftMap = useMemo(() => new Map(functionalTeams.map(ft => [ft.id, ft])), [functionalTeams]);
     const compMap = useMemo(() => new Map(competences.map(c => [c.id, c])), [competences]);
 
     // Calculate which Value Streams belong to this Type
@@ -85,40 +84,34 @@ const TypeSection: React.FC<{
                                 <div className="space-y-4">
                                     {catValueStreams.map(vs => {
                                         const vsServices = (vs.serviceIds || []).map(id => serviceMap.get(id)).filter(Boolean);
-                                        const vsEmployees = employees.filter(e => e.valueStreamIds.includes(vs.id));
                                         
-                                        // --- LOGIC CHANGE: Map actual names instead of just counting ---
-                                        
-                                        // 1. Group employees by Functional Team
-                                        const ftMembersMap = new Map<string, string[]>();
-                                        let totalFtAssignments = 0;
-                                        
-                                        vsEmployees.forEach(e => {
-                                            (e.functionalTeamIds || []).forEach((ftId: string) => {
-                                                const list = ftMembersMap.get(ftId) || [];
-                                                list.push(e.name);
-                                                ftMembersMap.set(ftId, list);
-                                                totalFtAssignments++;
-                                            });
-                                        });
-                                        const uniqueFtIds = Array.from(ftMembersMap.keys());
+                                        // 1. Identify Functional Teams explicitly assigned to this Value Stream
+                                        const assignedFunctionalTeams = functionalTeams.filter(ft => 
+                                            ft.valueStreamIds && ft.valueStreamIds.includes(vs.id)
+                                        );
 
-                                        // 2. Group employees by Competence
-                                        const compMembersMap = new Map<string, string[]>();
-                                        vsEmployees.forEach(e => {
+                                        // 2. Identify Employees who are members of these assigned Functional Teams
+                                        const derivedEmployees = employees.filter(e => 
+                                            e.functionalTeamIds && e.functionalTeamIds.some((ftId: string) => 
+                                                assignedFunctionalTeams.some(ft => ft.id === ftId)
+                                            )
+                                        );
+
+                                        // 3. Identify Competences based on the derived employees
+                                        // We group employees by competence to show counts and names in tooltips
+                                        const competenceMembersMap = new Map<string, string[]>();
+                                        derivedEmployees.forEach(e => {
                                             if (e.competenceId) {
-                                                const list = compMembersMap.get(e.competenceId) || [];
+                                                const list = competenceMembersMap.get(e.competenceId) || [];
                                                 list.push(e.name);
-                                                compMembersMap.set(e.competenceId, list);
+                                                competenceMembersMap.set(e.competenceId, list);
                                             }
                                         });
-                                        const uniqueCompIds = Array.from(compMembersMap.keys());
+                                        const uniqueCompIds = Array.from(competenceMembersMap.keys());
 
-                                        // 3. Logic to detect potential confusion
-                                        // If unique people (headcount) is less than total team spots filled (assignments),
-                                        // it means some people are in multiple teams contributing to this solution.
-                                        const uniqueHeadcount = vsEmployees.length;
-                                        const isDeDuplicated = totalFtAssignments > uniqueHeadcount;
+                                        // Metrics
+                                        const uniqueHeadcount = derivedEmployees.length; // Unique people in the assigned squads
+                                        const assignedSquadCount = assignedFunctionalTeams.length;
 
                                         return (
                                             <div key={vs.id} className="bg-slate-50 dark:bg-slate-800 rounded-lg p-4 border border-slate-200 dark:border-slate-700 flex flex-col lg:flex-row gap-6">
@@ -131,15 +124,10 @@ const TypeSection: React.FC<{
                                                         </span>
                                                         <div 
                                                             className="flex items-center gap-1 text-xs text-slate-500 dark:text-slate-400 bg-white dark:bg-slate-700 px-2 py-0.5 rounded border border-slate-200 dark:border-slate-600 cursor-help"
-                                                            title={isDeDuplicated ? `This solution has ${uniqueHeadcount} unique individuals filling ${totalFtAssignments} distinct team roles.` : 'Each person holds exactly one team role on this solution.'}
+                                                            title={`Capacity provided by ${assignedSquadCount} assigned functional team(s).`}
                                                         >
                                                             <UsersIcon className="w-3 h-3" />
-                                                            <span className="font-semibold">{uniqueHeadcount} Unique People</span>
-                                                            {isDeDuplicated && (
-                                                                <span className="text-slate-400 pl-1 border-l border-slate-300 ml-1 italic">
-                                                                    (vs {totalFtAssignments} assignments)
-                                                                </span>
-                                                            )}
+                                                            <span className="font-semibold">{uniqueHeadcount} People Capacity</span>
                                                         </div>
                                                     </div>
                                                     <p className="text-sm text-slate-500 dark:text-slate-400 mb-4">{vs.description}</p>
@@ -170,16 +158,18 @@ const TypeSection: React.FC<{
                                                     <div className="space-y-4">
                                                         <div>
                                                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                                                <UserGroupIcon className="w-3 h-3" /> Execution Squads
+                                                                <UserGroupIcon className="w-3 h-3" /> Functional Teams
                                                             </p>
                                                             <div className="flex flex-wrap gap-1.5">
-                                                                {uniqueFtIds.length > 0 ? uniqueFtIds.map(id => {
-                                                                    const ft = ftMap.get(id);
-                                                                    const members = ftMembersMap.get(id) || [];
-                                                                    if (!ft) return null;
+                                                                {assignedFunctionalTeams.length > 0 ? assignedFunctionalTeams.map(ft => {
+                                                                    // Find members of this specific team for the tooltip
+                                                                    const members = employees
+                                                                        .filter(e => e.functionalTeamIds && e.functionalTeamIds.includes(ft.id))
+                                                                        .map(e => e.name);
+
                                                                     return (
                                                                         <span 
-                                                                            key={id} 
+                                                                            key={ft.id} 
                                                                             className="text-xs bg-pink-100 text-pink-800 dark:bg-pink-900/50 dark:text-pink-200 px-2 py-1 rounded-md border border-pink-200 dark:border-pink-800 flex items-center gap-1 cursor-help hover:bg-pink-200 dark:hover:bg-pink-900 transition-colors" 
                                                                             title={`Team: ${ft.name}\nMembers: ${members.join(', ')}`}
                                                                         >
@@ -195,26 +185,26 @@ const TypeSection: React.FC<{
 
                                                         <div>
                                                             <p className="text-xs text-slate-500 dark:text-slate-400 mb-1 flex items-center gap-1">
-                                                                <BookOpenIcon className="w-3 h-3" /> Competences (Lines)
+                                                                <BookOpenIcon className="w-3 h-3" /> Competence Teams
                                                             </p>
                                                             <div className="flex flex-wrap gap-1.5">
                                                                 {uniqueCompIds.length > 0 ? uniqueCompIds.map(id => {
                                                                     const comp = compMap.get(id);
-                                                                    const members = compMembersMap.get(id) || [];
+                                                                    const memberNames = competenceMembersMap.get(id) || [];
                                                                     if (!comp) return null;
                                                                     return (
                                                                         <span 
                                                                             key={id} 
                                                                             className="text-xs bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200 px-2 py-1 rounded-md border border-indigo-200 dark:border-indigo-800 flex items-center gap-1 cursor-help hover:bg-indigo-200 dark:hover:bg-indigo-900 transition-colors"
-                                                                            title={`Competence: ${comp.name}\nMembers: ${members.join(', ')}`}
+                                                                            title={`Competence: ${comp.name}\nEmployees in squads: ${memberNames.join(', ')}`}
                                                                         >
                                                                             {comp.name}
                                                                             <span className="bg-white/40 dark:bg-black/20 px-1.5 rounded-sm text-[9px] font-bold min-w-[1.2em] text-center">
-                                                                                {members.length}
+                                                                                {memberNames.length}
                                                                             </span>
                                                                         </span>
                                                                     );
-                                                                }) : <span className="text-xs text-slate-400 italic">No competences found</span>}
+                                                                }) : <span className="text-xs text-slate-400 italic">No associated competences</span>}
                                                             </div>
                                                         </div>
                                                     </div>
@@ -245,7 +235,7 @@ const ServiceCatalogue: React.FC<ServiceCatalogueProps> = ({ data }) => {
                     <span className="font-semibold text-pink-600 dark:text-pink-400"> Delivery Teams</span> (Who).
                 </p>
                 <p className="text-xs text-slate-500 italic mt-1">
-                    * Hover over team badges to see specific members. Unique People count ensures employees in multiple teams on the same solution are counted once.
+                    * Functional Teams are explicitly assigned to Solutions. Competence Teams are derived from the employees working within those assigned Functional Teams.
                 </p>
             </div>
 

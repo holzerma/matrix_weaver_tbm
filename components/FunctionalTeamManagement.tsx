@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { FunctionalTeam, Employee } from '../types';
+import { FunctionalTeam, Employee, ValueStream } from '../types';
 import Modal from './common/Modal';
 import Card from './common/Card';
 import PlusIcon from './icons/PlusIcon';
@@ -12,12 +12,13 @@ import SearchIcon from './icons/SearchIcon';
 interface FunctionalTeamManagementProps {
     teams: FunctionalTeam[];
     employees: Employee[];
+    valueStreams: ValueStream[];
     onAddTeam: (team: FunctionalTeam) => void;
     onUpdateTeam: (team: FunctionalTeam) => void;
     onDeleteTeam: (teamId: string) => void;
 }
 
-const FunctionalTeamManagement: React.FC<FunctionalTeamManagementProps> = ({ teams, employees, onAddTeam, onUpdateTeam, onDeleteTeam }) => {
+const FunctionalTeamManagement: React.FC<FunctionalTeamManagementProps> = ({ teams, employees, valueStreams, onAddTeam, onUpdateTeam, onDeleteTeam }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTeam, setEditingTeam] = useState<FunctionalTeam | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
@@ -32,6 +33,8 @@ const FunctionalTeamManagement: React.FC<FunctionalTeamManagementProps> = ({ tea
         });
         return usage;
     }, [employees]);
+
+    const valueStreamMap = useMemo(() => new Map(valueStreams.map(vs => [vs.id, vs.name])), [valueStreams]);
 
     const handleAddNew = () => {
         setEditingTeam(null);
@@ -169,7 +172,7 @@ const FunctionalTeamManagement: React.FC<FunctionalTeamManagementProps> = ({ tea
                                         <SortIcon active={sortConfig?.key === 'model'} direction={sortConfig?.direction || 'asc'} />
                                     </div>
                                 </th>
-                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Type</th>
+                                <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Solution Assignments</th>
                                 <th 
                                     scope="col" 
                                     className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700"
@@ -186,16 +189,26 @@ const FunctionalTeamManagement: React.FC<FunctionalTeamManagementProps> = ({ tea
                         <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
                             {processedTeams.map(team => (
                                 <tr key={team.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100 align-top">
                                         {team.name}
                                         <p className="text-xs text-slate-500 font-normal truncate max-w-xs">{team.description}</p>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 align-top">
                                         <span className="bg-indigo-100 text-indigo-800 dark:bg-indigo-900 dark:text-indigo-200 py-0.5 px-2.5 rounded-full text-xs font-semibold">{team.operatingModel}</span>
                                     </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{team.type}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{teamUsageMap.get(team.id) || 0}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 align-top max-w-sm">
+                                        {(team.valueStreamIds && team.valueStreamIds.length > 0) ? (
+                                            <div className="flex flex-wrap gap-1">
+                                                {team.valueStreamIds.map(vsId => (
+                                                    <span key={vsId} className="px-2 py-0.5 text-[10px] font-semibold text-green-800 bg-green-100 dark:text-green-100 dark:bg-green-900 rounded-full">
+                                                        {valueStreamMap.get(vsId) || 'Unknown'}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        ) : <span className="text-xs text-slate-400 italic">None assigned</span>}
+                                    </td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 align-top">{teamUsageMap.get(team.id) || 0}</td>
+                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium align-top">
                                         <div className="flex items-center justify-end space-x-3">
                                             <button onClick={() => handleEdit(team)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
                                                 <EditIcon />
@@ -213,7 +226,7 @@ const FunctionalTeamManagement: React.FC<FunctionalTeamManagementProps> = ({ tea
             </Card>
 
             <Modal isOpen={isModalOpen} onClose={handleCancel} title={editingTeam ? 'Edit Team' : 'Add New Team'}>
-                <FunctionalTeamForm team={editingTeam} onSave={handleSave} onCancel={handleCancel} />
+                <FunctionalTeamForm team={editingTeam} valueStreams={valueStreams} onSave={handleSave} onCancel={handleCancel} />
             </Modal>
         </div>
     );

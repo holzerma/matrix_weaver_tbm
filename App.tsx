@@ -132,7 +132,29 @@ const App: React.FC = () => {
         setResourceTowers(data.resourceTowers || []);
         setSkills(data.skills || []);
         setServices(data.services || []);
-        setFunctionalTeams(data.functionalTeams || []);
+        
+        // Migration for FunctionalTeams:
+        // 1. Ensure valueStreamIds exists.
+        // 2. BACKWARDS COMPATIBILITY: If valueStreamIds is empty (old data), assume connections based on the employees in that team.
+        const migratedFunctionalTeams = (data.functionalTeams || []).map(ft => {
+            let vsIds = ft.valueStreamIds || [];
+            
+            // If team has no connections, infer them from members
+            if (vsIds.length === 0) {
+                const teamMembers = migratedEmployees.filter(e => e.functionalTeamIds && e.functionalTeamIds.includes(ft.id));
+                const uniqueVsIds = new Set<string>();
+                teamMembers.forEach(e => {
+                    (e.valueStreamIds || []).forEach(vsId => uniqueVsIds.add(vsId));
+                });
+                vsIds = Array.from(uniqueVsIds);
+            }
+
+            return {
+                ...ft,
+                valueStreamIds: vsIds
+            };
+        });
+        setFunctionalTeams(migratedFunctionalTeams);
         
         // Migration logic for Categories (old format missing type)
         let importedCategories = data.solutionCategories || initialSolutionCategories;
@@ -168,7 +190,7 @@ const App: React.FC = () => {
             setSolutionTypes(data.solutionTypes);
         }
         
-        alert('Data imported successfully!');
+        alert('Data imported successfully! Functional Teams have been auto-linked based on member activity.');
     };
 
     const handleExport = (): AppData => {
@@ -188,7 +210,7 @@ const App: React.FC = () => {
             case 'employees':
                 return <EmployeeManagement employees={employees} competences={competences} valueStreams={valueStreams} functionalTeams={functionalTeams} skills={skills} onAddEmployee={handleAddEmployee} onUpdateEmployee={handleUpdateEmployee} onDeleteEmployee={handleDeleteEmployee} />;
             case 'functionalTeams':
-                return <FunctionalTeamManagement teams={functionalTeams} employees={employees} onAddTeam={handleAddFunctionalTeam} onUpdateTeam={handleUpdateFunctionalTeam} onDeleteTeam={handleDeleteFunctionalTeam} />;
+                return <FunctionalTeamManagement teams={functionalTeams} employees={employees} valueStreams={valueStreams} onAddTeam={handleAddFunctionalTeam} onUpdateTeam={handleUpdateFunctionalTeam} onDeleteTeam={handleDeleteFunctionalTeam} />;
             case 'valueStreams':
                 return <ValueStreamManagement 
                     employees={employees} 
@@ -196,6 +218,7 @@ const App: React.FC = () => {
                     resourceTowers={resourceTowers} 
                     costPools={costPools} 
                     services={services} 
+                    functionalTeams={functionalTeams} 
                     solutionCategories={solutionCategories} 
                     solutionTypes={solutionTypes} 
                     onAddValueStream={handleAddValueStream} 

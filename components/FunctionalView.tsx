@@ -47,6 +47,50 @@ const FunctionalView: React.FC<{ data: AppData }> = ({ data }) => {
         }).sort((a, b) => a.name.localeCompare(b.name));
     }, [valueStreams, filterSolutionType]);
 
+    // FTE Calculation Logic
+    const valueStreamFteMap = useMemo(() => {
+        const fteMap = new Map<string, number>();
+        const teamMap = new Map<string, FunctionalTeam>(functionalTeams.map(t => [t.id, t]));
+
+        employees.forEach(emp => {
+            const directVsIds = emp.valueStreamIds || [];
+            const teamIds = emp.functionalTeamIds || [];
+            
+            // Only consider valid teams that actually exist in the system
+            const validTeamIds = teamIds.filter(id => teamMap.has(id));
+            
+            // An employee's total capacity (1.0 FTE) is split between their direct contexts and their team contexts.
+            // Each direct assignment counts as 1 unit.
+            // Each team membership counts as 1 unit.
+            const totalAllocationUnits = directVsIds.length + validTeamIds.length;
+            
+            if (totalAllocationUnits === 0) return;
+
+            const ftePerUnit = 1.0 / totalAllocationUnits;
+
+            // 1. Distribute FTE for Direct Assignments
+            directVsIds.forEach(vsId => {
+                fteMap.set(vsId, (fteMap.get(vsId) || 0) + ftePerUnit);
+            });
+
+            // 2. Distribute FTE for Team Assignments
+            validTeamIds.forEach(ftId => {
+                const team = teamMap.get(ftId)!;
+                const teamVsIds = team.valueStreamIds || [];
+                if (teamVsIds.length > 0) {
+                    // The portion of time the employee gives to this team is further split 
+                    // among the solutions that team serves.
+                    const ftePerTeamVs = ftePerUnit / teamVsIds.length;
+                    teamVsIds.forEach(vsId => {
+                        fteMap.set(vsId, (fteMap.get(vsId) || 0) + ftePerTeamVs);
+                    });
+                }
+            });
+        });
+
+        return fteMap;
+    }, [employees, functionalTeams]);
+
     const setRef = useCallback((id: string, node: HTMLElement | null) => {
         if (node) {
             elementRefs.current.set(id, node);
@@ -91,48 +135,44 @@ const FunctionalView: React.FC<{ data: AppData }> = ({ data }) => {
 
     useEffect(() => {
         const newConnections: Connection[] = [];
-        const connectionMap = new Map<string, number>();
 
-        // Calculate connections based on employees in both FT and VS
-        employees.forEach(emp => {
-            if (!emp.functionalTeamIds || emp.functionalTeamIds.length === 0) return;
-            if (!emp.valueStreamIds || emp.valueStreamIds.length === 0) return;
+        // Iterate through filtered Functional Teams to establish connections
+        filteredFunctionalTeams.forEach(ft => {
+            // Skip if no solutions assigned
+            if (!ft.valueStreamIds || ft.valueStreamIds.length === 0) return;
 
-            emp.functionalTeamIds.forEach(ftId => {
-                emp.valueStreamIds.forEach(vsId => {
-                    // Only map if both entities are currently visible
-                    if (filteredFunctionalTeams.some(ft => ft.id === ftId) && filteredValueStreams.some(vs => vs.id === vsId)) {
-                        const key = `${ftId}::${vsId}`;
-                        connectionMap.set(key, (connectionMap.get(key) || 0) + 1);
+            // Calculate strength based on team size (Capacity)
+            const teamMembersCount = employees.filter(e => e.functionalTeamIds && e.functionalTeamIds.includes(ft.id)).length;
+            const strength = Math.max(1, teamMembersCount);
+
+            ft.valueStreamIds.forEach(vsId => {
+                // Only create connection if the target Value Stream is visible
+                if (filteredValueStreams.some(vs => vs.id === vsId)) {
+                    const ftPos = positions[ft.id];
+                    const vsPos = positions[vsId];
+
+                    if (ftPos && vsPos) {
+                        const key = `${ft.id}::${vsId}`;
+                        const startX = ftPos.x + ftPos.width / 2;
+                        const startY = ftPos.y + ftPos.height;
+                        const endX = vsPos.x + vsPos.width / 2;
+                        const endY = vsPos.y;
+
+                        const cpx1 = startX;
+                        const cpy1 = startY + 80;
+                        const cpx2 = endX;
+                        const cpy2 = endY - 80;
+
+                        newConnections.push({
+                            key: key,
+                            d: `M ${startX} ${startY} C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${endX} ${endY}`,
+                            ftId: ft.id,
+                            vsId: vsId,
+                            strength: strength
+                        });
                     }
-                });
+                }
             });
-        });
-
-        connectionMap.forEach((count, key) => {
-            const [ftId, vsId] = key.split('::');
-            const ftPos = positions[ftId];
-            const vsPos = positions[vsId];
-
-            if (ftPos && vsPos) {
-                const startX = ftPos.x + ftPos.width / 2;
-                const startY = ftPos.y + ftPos.height;
-                const endX = vsPos.x + vsPos.width / 2;
-                const endY = vsPos.y;
-
-                const cpx1 = startX;
-                const cpy1 = startY + 80;
-                const cpx2 = endX;
-                const cpy2 = endY - 80;
-
-                newConnections.push({
-                    key: key,
-                    d: `M ${startX} ${startY} C ${cpx1} ${cpy1}, ${cpx2} ${cpy2}, ${endX} ${endY}`,
-                    ftId,
-                    vsId,
-                    strength: count
-                });
-            }
         });
 
         setConnections(newConnections);
@@ -185,8 +225,18 @@ const FunctionalView: React.FC<{ data: AppData }> = ({ data }) => {
     // Helper to get employees in a Functional Team
     const getTeamMembers = (ftId: string) => employees.filter(e => e.functionalTeamIds && e.functionalTeamIds.includes(ftId));
     
-    // Helper to get employees in a Value Stream
-    const getVsMembers = (vsId: string) => employees.filter(e => e.valueStreamIds.includes(vsId));
+    // Helper to get unique employees involved in a Value Stream (for Avatar display)
+    const getVsMembers = useCallback((vsId: string) => {
+        const assignedTeamIds = functionalTeams
+            .filter(ft => ft.valueStreamIds && ft.valueStreamIds.includes(vsId))
+            .map(ft => ft.id);
+        
+        return employees.filter(e => {
+            const inAssignedTeam = e.functionalTeamIds && e.functionalTeamIds.some(ftId => assignedTeamIds.includes(ftId));
+            const isDirectlyAssigned = e.valueStreamIds && e.valueStreamIds.includes(vsId);
+            return inAssignedTeam || isDirectlyAssigned;
+        });
+    }, [functionalTeams, employees]);
 
     return (
         <div className="space-y-6">
@@ -235,7 +285,8 @@ const FunctionalView: React.FC<{ data: AppData }> = ({ data }) => {
                     <div>
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Functional Interaction Map</h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                            Visualizing how execution squads and functional teams align with value streams. Thicker lines indicate more shared personnel.
+                            Visualizing how execution squads and functional teams align with value streams. 
+                            Line thickness indicates capacity. Metrics show calculated FTE based on assignment splits.
                         </p>
                     </div>
                 </div>
@@ -314,6 +365,7 @@ const FunctionalView: React.FC<{ data: AppData }> = ({ data }) => {
                                 <div className="flex flex-wrap justify-center gap-6">
                                     {filteredValueStreams.map(vs => {
                                         const members = getVsMembers(vs.id);
+                                        const fte = valueStreamFteMap.get(vs.id) || 0;
                                         return (
                                             <div 
                                                 key={vs.id} 
@@ -331,8 +383,11 @@ const FunctionalView: React.FC<{ data: AppData }> = ({ data }) => {
                                                 
                                                 <div className="flex justify-between items-end border-t border-slate-100 dark:border-slate-700 pt-2">
                                                     <div className="flex flex-col">
-                                                        <span className="text-[10px] uppercase text-slate-400 font-bold">Total Staff</span>
-                                                        <span className="text-lg font-bold text-slate-700 dark:text-slate-200">{members.length}</span>
+                                                        <span className="text-[10px] uppercase text-slate-400 font-bold">Capacity</span>
+                                                        <div className="flex items-baseline gap-1">
+                                                            <span className="text-lg font-bold text-slate-700 dark:text-slate-200">{fte.toFixed(1)} FTE</span>
+                                                            <span className="text-xs text-slate-500 font-medium">({members.length} ppl)</span>
+                                                        </div>
                                                     </div>
                                                     <div>
                                                         {getEmployeeAvatars(members.map(m => m.id))}

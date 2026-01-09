@@ -16,6 +16,7 @@ export interface FunctionalTeam {
     description: string;
     type: 'Product' | 'Service';
     operatingModel: 'Scrum' | 'Kanban' | 'Project' | 'IT-Demand' | 'Other';
+    valueStreamIds: string[]; // Explicit mapping to Value Streams
 }
 
 export interface Employee {

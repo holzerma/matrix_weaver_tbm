@@ -42,7 +42,7 @@ const Tooltip: React.FC<{ item: ValueStream | Service | null, position: { top: n
 };
 
 const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => {
-    const { employees, valueStreams, services, solutionCategories, solutionTypes = [] } = data;
+    const { employees, valueStreams, services, solutionCategories, solutionTypes = [], functionalTeams } = data;
     const [hoveredItem, setHoveredItem] = useState<{ item: ValueStream | Service; position: { top: number; left: number } } | null>(null);
 
     const serviceMap = useMemo(() => new Map(services.map(s => [s.id, s])), [services]);
@@ -63,47 +63,63 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
         const categoryFTE = new Map<string, number>();
         const solutionFTE = new Map<string, number>();
 
+        // Pre-calculation map: FunctionalTeamID -> List of Employee IDs
+        const teamEmployeesMap = new Map<string, string[]>();
+        
         employees.forEach(emp => {
-            const assignmentCount = emp.valueStreamIds.length;
-            if (assignmentCount === 0) return;
+            (emp.functionalTeamIds || []).forEach(ftId => {
+                if (!teamEmployeesMap.has(ftId)) teamEmployeesMap.set(ftId, []);
+                teamEmployeesMap.get(ftId)!.push(emp.id);
+            });
+        });
 
-            // Calculate FTE contribution per value stream (equal split)
-            const fteContribution = 1 / assignmentCount;
+        // Iterate through Functional Teams to propagate value to Value Streams
+        functionalTeams.forEach(ft => {
+            const assignedVsIds = ft.valueStreamIds || [];
+            if (assignedVsIds.length === 0) return; // Team not assigned to any solution
 
-            emp.valueStreamIds.forEach(vsId => {
-                const vs = valueStreams.find(v => v.id === vsId);
-                if (vs) {
-                    // --- Headcount (Reach) Calculation ---
-                    
-                    // Solution Level
-                    if (!solutionHC.has(vs.id)) solutionHC.set(vs.id, new Set());
-                    solutionHC.get(vs.id)!.add(emp.id);
+            const teamMemberIds = teamEmployeesMap.get(ft.id) || [];
+            if (teamMemberIds.length === 0) return; // Empty team
 
-                    // Category Level
-                    const catKey = `${vs.solutionType}:${vs.solutionCategory}`;
-                    if (!categoryHC.has(catKey)) categoryHC.set(catKey, new Set());
-                    categoryHC.get(catKey)!.add(emp.id);
+            // Split Rule 1: A team's capacity is split equally among the solutions it serves.
+            const teamToSolutionFactor = 1 / assignedVsIds.length;
 
-                    // Type Level
-                    if (!typeHC.has(vs.solutionType)) typeHC.set(vs.solutionType, new Set());
-                    typeHC.get(vs.solutionType)!.add(emp.id);
+            teamMemberIds.forEach(empId => {
+                const emp = employees.find(e => e.id === empId);
+                if (!emp) return;
 
-                    // --- Assignments (Volume) Calculation ---
-                    // Increment for every role occurrence
-                    categoryAssignments.set(catKey, (categoryAssignments.get(catKey) || 0) + 1);
-                    typeAssignments.set(vs.solutionType, (typeAssignments.get(vs.solutionType) || 0) + 1);
+                // Split Rule 2: An employee's capacity is split equally among the teams they are in.
+                const empTeamCount = emp.functionalTeamIds?.length || 0;
+                const empToTeamFactor = empTeamCount > 0 ? (1 / empTeamCount) : 0;
 
-                    // --- FTE (Capacity) Calculation ---
-                    
-                    // Solution Level
-                    solutionFTE.set(vs.id, (solutionFTE.get(vs.id) || 0) + fteContribution);
+                // Combined FTE contribution of this person, through this specific team, to a specific solution
+                const contributionFTE = empToTeamFactor * teamToSolutionFactor;
 
-                    // Category Level
-                    categoryFTE.set(catKey, (categoryFTE.get(catKey) || 0) + fteContribution);
+                assignedVsIds.forEach(vsId => {
+                    const vs = valueStreams.find(v => v.id === vsId);
+                    if (vs) {
+                        // --- Headcount (Reach) ---
+                        if (!solutionHC.has(vsId)) solutionHC.set(vsId, new Set());
+                        solutionHC.get(vsId)!.add(empId);
 
-                    // Type Level
-                    typeFTE.set(vs.solutionType, (typeFTE.get(vs.solutionType) || 0) + fteContribution);
-                }
+                        const catKey = `${vs.solutionType}:${vs.solutionCategory}`;
+                        if (!categoryHC.has(catKey)) categoryHC.set(catKey, new Set());
+                        categoryHC.get(catKey)!.add(empId);
+
+                        if (!typeHC.has(vs.solutionType)) typeHC.set(vs.solutionType, new Set());
+                        typeHC.get(vs.solutionType)!.add(empId);
+
+                        // --- Assignments (Volume) ---
+                        // Increment for every distinct path (Person -> Team -> Solution)
+                        categoryAssignments.set(catKey, (categoryAssignments.get(catKey) || 0) + 1);
+                        typeAssignments.set(vs.solutionType, (typeAssignments.get(vs.solutionType) || 0) + 1);
+
+                        // --- FTE (Capacity) ---
+                        solutionFTE.set(vsId, (solutionFTE.get(vsId) || 0) + contributionFTE);
+                        categoryFTE.set(catKey, (categoryFTE.get(catKey) || 0) + contributionFTE);
+                        typeFTE.set(vs.solutionType, (typeFTE.get(vs.solutionType) || 0) + contributionFTE);
+                    }
+                });
             });
         });
 
@@ -123,7 +139,7 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
                 fte: solutionFTE.get(vsId) || 0
             }),
         };
-    }, [employees, valueStreams]);
+    }, [employees, valueStreams, functionalTeams]);
 
     const taxonomy = useMemo(() => {
         const result: TaxonomyNode = {};
@@ -179,12 +195,12 @@ const SolutionTaxonomyView: React.FC<SolutionTaxonomyViewProps> = ({ data }) => 
                     <div className="space-y-1">
                         <h3 className="text-lg font-bold text-slate-800 dark:text-slate-100">Solution Hierarchy & Resource Metrics</h3>
                         <p className="text-sm text-slate-600 dark:text-slate-400">
-                            This diagram shows the TBM solution hierarchy with three key resource metrics:
+                            This diagram shows the TBM solution hierarchy with metrics derived from <span className="font-semibold text-pink-600 dark:text-pink-400">Functional Team</span> assignments.
                         </p>
                         <ul className="list-disc list-inside text-sm text-slate-600 dark:text-slate-400 ml-2">
-                            <li><strong>Unique:</strong> The number of distinct individuals involved (Reach). <em>"How many people?"</em></li>
-                            <li><strong>Roles:</strong> The total number of positions filled. If one person is in two solutions, they count as 2 Roles but 1 Unique. <em>"How many seats?"</em></li>
-                            <li><strong>FTE:</strong> Full-Time Equivalent capacity, splitting an employee's time equally across their assignments. <em>"How much effort?"</em></li>
+                            <li><strong>Unique:</strong> Distinct individuals found in the assigned teams (Reach).</li>
+                            <li><strong>Roles:</strong> Total team seats filled. (One person in two assigned teams counts as 2 roles).</li>
+                            <li><strong>FTE:</strong> Estimated capacity. An employee's time is split equally across their teams, and a team's time is split equally across its solutions.</li>
                         </ul>
                     </div>
                 </div>

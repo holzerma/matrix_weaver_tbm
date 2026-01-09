@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { Employee, ValueStream, ResourceTower, CostPool, Service, SolutionCategory, SolutionTypeDefinition } from '../types';
+import { Employee, ValueStream, ResourceTower, CostPool, Service, SolutionCategory, SolutionTypeDefinition, FunctionalTeam } from '../types';
 import Modal from './common/Modal';
 import Card from './common/Card';
 import PlusIcon from './icons/PlusIcon';
@@ -15,6 +15,7 @@ interface ValueStreamManagementProps {
     resourceTowers: ResourceTower[];
     costPools: CostPool[];
     services: Service[];
+    functionalTeams: FunctionalTeam[];
     solutionCategories?: SolutionCategory[]; 
     solutionTypes?: SolutionTypeDefinition[];
     onAddValueStream: (vs: ValueStream) => void;
@@ -22,7 +23,7 @@ interface ValueStreamManagementProps {
     onDeleteValueStream: (vsId: string) => void;
 }
 
-const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees, valueStreams, resourceTowers, costPools, services, solutionCategories = [], solutionTypes = [], onAddValueStream, onUpdateValueStream, onDeleteValueStream }) => {
+const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees, valueStreams, resourceTowers, costPools, services, functionalTeams, solutionCategories = [], solutionTypes = [], onAddValueStream, onUpdateValueStream, onDeleteValueStream }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingVs, setEditingVs] = useState<ValueStream | null>(null);
 
@@ -30,6 +31,7 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
     const [searchTerm, setSearchTerm] = useState('');
     const [filterClassification, setFilterClassification] = useState('all');
     const [filterType, setFilterType] = useState('all');
+    const [filterTeam, setFilterTeam] = useState('all');
     const [sortConfig, setSortConfig] = useState<{ key: string; direction: 'asc' | 'desc' } | null>(null);
 
     const vsUsageMap = useMemo(() => {
@@ -43,6 +45,15 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
     }, [employees]);
 
     const serviceMap = useMemo(() => new Map(services.map(s => [s.id, s.name])), [services]);
+
+    // Helper to get teams assigned to a specific Value Stream
+    const getTeamsForVs = (vsId: string) => {
+        return functionalTeams.filter(ft => ft.valueStreamIds && ft.valueStreamIds.includes(vsId));
+    };
+
+    const sortedFunctionalTeams = useMemo(() => {
+        return [...functionalTeams].sort((a, b) => a.name.localeCompare(b.name));
+    }, [functionalTeams]);
 
     const handleAddNew = () => {
         setEditingVs(null);
@@ -59,6 +70,13 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
             alert('This solution cannot be deleted because it is assigned to one or more employees.');
             return;
         }
+        // Also check if functional teams are assigned to it
+        const assignedTeams = getTeamsForVs(vsId);
+        if (assignedTeams.length > 0) {
+             alert(`This solution cannot be deleted because it is assigned to the following functional teams: ${assignedTeams.map(t => t.name).join(', ')}.`);
+             return;
+        }
+
         if (window.confirm('Are you sure you want to delete this solution?')) {
             onDeleteValueStream(vsId);
         }
@@ -107,6 +125,13 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
              result = result.filter(vs => vs.solutionType === filterType);
         }
 
+        if (filterTeam !== 'all') {
+            result = result.filter(vs => {
+                const teams = getTeamsForVs(vs.id);
+                return teams.some(t => t.id === filterTeam);
+            });
+        }
+
         if (sortConfig) {
              result.sort((a, b) => {
                 let aVal: string | number = '';
@@ -124,6 +149,9 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
                 } else if (sortConfig.key === 'employees') {
                     aVal = vsUsageMap.get(a.id) || 0;
                     bVal = vsUsageMap.get(b.id) || 0;
+                } else if (sortConfig.key === 'teams') {
+                    aVal = getTeamsForVs(a.id).length;
+                    bVal = getTeamsForVs(b.id).length;
                 }
 
                 if (aVal < bVal) return sortConfig.direction === 'asc' ? -1 : 1;
@@ -133,7 +161,7 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
         }
 
         return result;
-    }, [valueStreams, searchTerm, filterClassification, filterType, sortConfig, vsUsageMap]);
+    }, [valueStreams, searchTerm, filterClassification, filterType, filterTeam, sortConfig, vsUsageMap, functionalTeams]);
 
     const SortIcon = ({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) => (
         <span className={`ml-1 inline-block transition-opacity ${active ? 'opacity-100' : 'opacity-20 hover:opacity-50'}`}>
@@ -170,28 +198,42 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
                             className="pl-10 block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2"
                         />
                     </div>
-                    <div className="relative min-w-[200px]">
-                        <select
-                            value={filterClassification}
-                            onChange={(e) => setFilterClassification(e.target.value)}
-                            className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
-                        >
-                            <option value="all">All Classifications</option>
-                            <option value="Product">Product</option>
-                            <option value="Service">Service</option>
-                        </select>
-                    </div>
-                    <div className="relative min-w-[200px]">
-                        <select
-                            value={filterType}
-                            onChange={(e) => setFilterType(e.target.value)}
-                            className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
-                        >
-                            <option value="all">All Types</option>
-                            {solutionTypes.map(type => (
-                                <option key={type.id} value={type.name}>{type.name}</option>
-                            ))}
-                        </select>
+                    <div className="flex flex-wrap gap-4">
+                        <div className="relative min-w-[150px]">
+                            <select
+                                value={filterClassification}
+                                onChange={(e) => setFilterClassification(e.target.value)}
+                                className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
+                            >
+                                <option value="all">All Classifications</option>
+                                <option value="Product">Product</option>
+                                <option value="Service">Service</option>
+                            </select>
+                        </div>
+                        <div className="relative min-w-[150px]">
+                            <select
+                                value={filterType}
+                                onChange={(e) => setFilterType(e.target.value)}
+                                className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
+                            >
+                                <option value="all">All Types</option>
+                                {solutionTypes.map(type => (
+                                    <option key={type.id} value={type.name}>{type.name}</option>
+                                ))}
+                            </select>
+                        </div>
+                        <div className="relative min-w-[180px]">
+                            <select
+                                value={filterTeam}
+                                onChange={(e) => setFilterTeam(e.target.value)}
+                                className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
+                            >
+                                <option value="all">All Assigned Teams</option>
+                                {sortedFunctionalTeams.map(ft => (
+                                    <option key={ft.id} value={ft.id}>{ft.name}</option>
+                                ))}
+                            </select>
+                        </div>
                     </div>
                 </div>
             </Card>
@@ -231,6 +273,16 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
                                         <SortIcon active={sortConfig?.key === 'category'} direction={sortConfig?.direction || 'asc'} />
                                     </div>
                                 </th>
+                                <th 
+                                    scope="col" 
+                                    className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider cursor-pointer select-none hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    onClick={() => handleSort('teams')}
+                                >
+                                    <div className="flex items-center">
+                                        Assigned Teams
+                                        <SortIcon active={sortConfig?.key === 'teams'} direction={sortConfig?.direction || 'asc'} />
+                                    </div>
+                                </th>
                                 <th scope="col" className="px-6 py-3 text-left text-xs font-medium text-slate-500 dark:text-slate-300 uppercase tracking-wider">Provided Services</th>
                                 <th 
                                     scope="col" 
@@ -247,45 +299,58 @@ const ValueStreamManagement: React.FC<ValueStreamManagementProps> = ({ employees
                         </thead>
                         <tbody className="bg-white dark:bg-slate-900 divide-y divide-slate-200 dark:divide-slate-700">
                             {processedValueStreams.length > 0 ? (
-                                processedValueStreams.map(vs => (
-                                <tr key={vs.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                                    <td className="px-6 py-4 whitespace-nowrap">
-                                        <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{vs.name}</p>
-                                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{vs.description}</p>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm">
-                                        {vs.solutionClassification && (
-                                            <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${classBadges[vs.solutionClassification]}`}>
-                                                {vs.solutionClassification}
-                                            </span>
-                                        )}
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{vs.solutionCategory || 'N/A'}</td>
-                                    <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 max-w-xs">
-                                        <div className="flex flex-wrap gap-1">
-                                            {vs.serviceIds?.map(serviceId => (
-                                                <span key={serviceId} className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 dark:text-gray-100 dark:bg-gray-700 rounded-full">
-                                                    {serviceMap.get(serviceId) || 'Unknown'}
+                                processedValueStreams.map(vs => {
+                                    const assignedTeams = getTeamsForVs(vs.id);
+                                    return (
+                                    <tr key={vs.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                        <td className="px-6 py-4 whitespace-nowrap">
+                                            <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{vs.name}</p>
+                                            <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs truncate">{vs.description}</p>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                                            {vs.solutionClassification && (
+                                                <span className={`px-2.5 py-0.5 text-xs font-semibold rounded-full capitalize ${classBadges[vs.solutionClassification]}`}>
+                                                    {vs.solutionClassification}
                                                 </span>
-                                            ))}
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 text-center">{vsUsageMap.get(vs.id) || 0}</td>
-                                    <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                                        <div className="flex items-center justify-end space-x-3">
-                                            <button onClick={() => handleEdit(vs)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
-                                                <EditIcon />
-                                            </button>
-                                            <button onClick={() => handleDelete(vs.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={vsUsageMap.has(vs.id)}>
-                                                <DeleteIcon />
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))
+                                            )}
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400">{vs.solutionCategory || 'N/A'}</td>
+                                        <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 max-w-xs">
+                                            {assignedTeams.length > 0 ? (
+                                                <div className="flex flex-wrap gap-1">
+                                                    {assignedTeams.map(team => (
+                                                        <span key={team.id} className="px-2 py-0.5 text-[10px] font-semibold text-pink-800 bg-pink-100 dark:text-pink-100 dark:bg-pink-900 rounded-full" title={team.name}>
+                                                            {team.name}
+                                                        </span>
+                                                    ))}
+                                                </div>
+                                            ) : <span className="text-xs text-slate-400 italic">None</span>}
+                                        </td>
+                                        <td className="px-6 py-4 text-sm text-slate-500 dark:text-slate-400 max-w-xs">
+                                            <div className="flex flex-wrap gap-1">
+                                                {vs.serviceIds?.map(serviceId => (
+                                                    <span key={serviceId} className="px-2 py-1 text-xs font-semibold text-gray-800 bg-gray-100 dark:text-gray-100 dark:bg-gray-700 rounded-full">
+                                                        {serviceMap.get(serviceId) || 'Unknown'}
+                                                    </span>
+                                                ))}
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-sm text-slate-500 dark:text-slate-400 text-center">{vsUsageMap.get(vs.id) || 0}</td>
+                                        <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                                            <div className="flex items-center justify-end space-x-3">
+                                                <button onClick={() => handleEdit(vs)} className="text-indigo-600 hover:text-indigo-900 dark:text-indigo-400 dark:hover:text-indigo-200">
+                                                    <EditIcon />
+                                                </button>
+                                                <button onClick={() => handleDelete(vs.id)} className="text-red-600 hover:text-red-900 dark:text-red-400 dark:hover:text-red-200 disabled:opacity-50 disabled:cursor-not-allowed" disabled={vsUsageMap.has(vs.id) || assignedTeams.length > 0}>
+                                                    <DeleteIcon />
+                                                </button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                )})
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="px-6 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
+                                    <td colSpan={7} className="px-6 py-8 text-center text-sm text-slate-500 dark:text-slate-400">
                                         No solutions found matching your filters.
                                     </td>
                                 </tr>
