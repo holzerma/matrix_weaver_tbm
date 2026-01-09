@@ -20,8 +20,9 @@ import BriefcaseIcon from './icons/BriefcaseIcon';
 import SitemapIcon from './icons/SitemapIcon';
 import QuestionMarkCircleIcon from './icons/QuestionMarkCircleIcon';
 import UserGroupIcon from './icons/UserGroupIcon';
+import ShieldCheckIcon from './icons/ShieldCheckIcon';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'functionalView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'functionalView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams' | 'healthChecks' | 'serviceCatalogue';
 
 interface HeaderProps {
     currentView: View;
@@ -39,7 +40,12 @@ type NavItem = {
 };
 
 const navItems: NavItem[] = [
-    { id: 'dashboard', label: 'Dashboard', icon: <ChartBarIcon /> },
+    { 
+        id: 'dashboard-group', label: 'Dashboard', icon: <ChartBarIcon />, children: [
+            { id: 'dashboard', label: 'Overview', icon: <ChartBarIcon /> },
+            { id: 'healthChecks', label: 'Health Checks', icon: <ShieldCheckIcon /> },
+        ] 
+    },
     { 
         id: 'analytics', label: 'Analytics', icon: <AnalyticsIcon />, children: [
             { id: 'financialAnalytics', label: 'Financial Analytics', icon: <AnalyticsIcon /> },
@@ -50,8 +56,9 @@ const navItems: NavItem[] = [
     },
     {
         id: 'offerings', label: 'Offerings', icon: <StreamIcon />, children: [
+            { id: 'serviceCatalogue', label: 'Service Catalogue', icon: <BriefcaseIcon /> },
             { id: 'valueStreams', label: 'Value Streams / Solutions', icon: <StreamIcon /> },
-            { id: 'services', label: 'Services', icon: <BriefcaseIcon /> },
+            { id: 'services', label: 'Services (Manage)', icon: <BriefcaseIcon /> },
         ]
     },
     {
@@ -203,7 +210,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                                 {item.children.map(child => (
                                     <li key={child.id}>
                                         <button
-                                            onClick={() => handleSubMenuClick(child.id)}
+                                            onClick={() => handleSubMenuClick(child.id as View)}
                                             className={`w-full text-left flex items-center space-x-3 px-4 py-2 text-sm transition-colors ${currentView === child.id
                                                 ? 'bg-indigo-50 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200'
                                                 : 'text-slate-700 hover:bg-slate-100 dark:text-slate-300 dark:hover:bg-slate-700'

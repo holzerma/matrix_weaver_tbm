@@ -21,8 +21,10 @@ import SolutionCategoryManagement from './components/SolutionCategoryManagement'
 import SolutionTypeManagement from './components/SolutionTypeManagement';
 import FunctionalTeamManagement from './components/FunctionalTeamManagement';
 import FunctionalView from './components/FunctionalView';
+import HealthChecks from './components/HealthChecks';
+import ServiceCatalogue from './components/ServiceCatalogue';
 
-type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'functionalView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams';
+type View = 'dashboard' | 'employees' | 'valueStreams' | 'competences' | 'costPools' | 'resourceTowers' | 'orgView' | 'functionalView' | 'financialAnalytics' | 'skills' | 'competencyMap' | 'services' | 'solutionTaxonomy' | 'solutionCategories' | 'solutionTypes' | 'functionalTeams' | 'healthChecks' | 'serviceCatalogue';
 
 const App: React.FC = () => {
     const [view, setView] = useState<View>('dashboard');
@@ -181,6 +183,8 @@ const App: React.FC = () => {
         switch (view) {
             case 'dashboard':
                 return <Dashboard data={appData} />;
+            case 'healthChecks':
+                return <HealthChecks data={appData} />;
             case 'employees':
                 return <EmployeeManagement employees={employees} competences={competences} valueStreams={valueStreams} functionalTeams={functionalTeams} skills={skills} onAddEmployee={handleAddEmployee} onUpdateEmployee={handleUpdateEmployee} onDeleteEmployee={handleDeleteEmployee} />;
             case 'functionalTeams':
@@ -198,6 +202,8 @@ const App: React.FC = () => {
                     onUpdateValueStream={handleUpdateValueStream} 
                     onDeleteValueStream={handleDeleteValueStream} 
                 />;
+            case 'serviceCatalogue':
+                return <ServiceCatalogue data={appData} />;
             case 'competences':
                 return <CompetenceManagement employees={employees} competences={competences} onAddCompetence={handleAddCompetence} onUpdateCompetence={handleUpdateCompetence} onDeleteCompetence={handleDeleteCompetence} />;
             case 'costPools':
@@ -230,7 +236,7 @@ const App: React.FC = () => {
             case 'solutionTypes':
                 return <SolutionTypeManagement 
                     solutionTypes={solutionTypes} 
-                    valueStreams={valueStreams}
+                    valueStreams={valueStreams} 
                     onAddType={handleAddSolutionType}
                     onUpdateType={handleUpdateSolutionType}
                     onDeleteType={handleDeleteSolutionType}

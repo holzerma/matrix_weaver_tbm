@@ -14,10 +14,6 @@ import DollarSignIcon from './icons/DollarSignIcon';
 import { PieChart, Pie, Cell, Tooltip, Legend, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, CartesianGrid } from 'recharts';
 import ResourceTowerIcon from './icons/ResourceTowerIcon';
 import BriefcaseIcon from './icons/BriefcaseIcon';
-import ShieldCheckIcon from './icons/ShieldCheckIcon';
-import AlertTriangleIcon from './icons/AlertTriangleIcon';
-import CheckCircleIcon from './icons/CheckCircleIcon';
-import ChevronDownIcon from './icons/ChevronDownIcon';
 
 interface DashboardProps {
     data: AppData;
@@ -40,46 +36,6 @@ const StatCard: React.FC<{ icon: React.ReactNode; title: string; value: string; 
         </div>
     </Card>
 );
-
-const HealthCheckSection: React.FC<{
-    title: string;
-    isHealthy: boolean;
-    children: React.ReactNode;
-}> = ({ title, isHealthy, children }) => {
-    const [isExpanded, setIsExpanded] = useState(false);
-
-    return (
-        <div>
-            <button 
-                className={`w-full flex justify-between items-center mb-2 text-left group ${!isHealthy ? 'cursor-pointer' : 'cursor-default'}`}
-                onClick={() => !isHealthy && setIsExpanded(!isExpanded)}
-                type="button"
-                disabled={isHealthy}
-            >
-                <div className="flex items-center gap-2">
-                    <h4 className="font-semibold text-slate-700 dark:text-slate-200">{title}</h4>
-                    {!isHealthy && (
-                        <ChevronDownIcon className={`w-4 h-4 text-slate-500 transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`} />
-                    )}
-                </div>
-                {isHealthy ? (
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-green-600 dark:text-green-400">
-                        <CheckCircleIcon /> Healthy
-                    </span>
-                ) : (
-                    <span className="flex items-center gap-1.5 text-sm font-medium text-amber-600 dark:text-amber-400">
-                        <AlertTriangleIcon /> Needs Review
-                    </span>
-                )}
-            </button>
-            {!isHealthy && isExpanded && (
-                <div className="mt-2 pl-2 border-l-2 border-slate-100 dark:border-slate-700 animate-fadeIn">
-                    {children}
-                </div>
-            )}
-        </div>
-    );
-};
 
 const COLORS = ['#4338ca', '#f59e0b', '#10b981', '#ef4444', '#3b82f6', '#8b5cf6'];
 const MiniCell = ({ fill }: { fill: string }) => <div className="w-3 h-3 rounded-sm" style={{ backgroundColor: fill }}></div>;
@@ -179,41 +135,6 @@ const Dashboard: React.FC<DashboardProps> = ({ data }) => {
 const OverallDashboardView: React.FC<{ data: AppData }> = ({ data }) => {
     const { employees, valueStreams, competences, costPools, resourceTowers, services, skills } = data;
 
-    const { unassignedServices, sharedServices } = useMemo(() => {
-        const serviceUsageCount = new Map<string, number>();
-        valueStreams.forEach(vs => {
-            (vs.serviceIds || []).forEach(serviceId => {
-                serviceUsageCount.set(serviceId, (serviceUsageCount.get(serviceId) || 0) + 1);
-            });
-        });
-
-        const unassigned = services.filter(s => !serviceUsageCount.has(s.id));
-        const shared = services.filter(s => (serviceUsageCount.get(s.id) || 0) > 1);
-
-        return { unassignedServices: unassigned, sharedServices: shared };
-    }, [services, valueStreams]);
-    
-    const atRiskSkills = useMemo(() => {
-        const skillUsageCount = new Map<string, number>();
-        employees.forEach(emp => {
-            emp.skills.forEach(skill => {
-                skillUsageCount.set(skill.skillId, (skillUsageCount.get(skill.skillId) || 0) + 1);
-            });
-        });
-        
-        const atRisk: Skill[] = [];
-        skillUsageCount.forEach((count, skillId) => {
-            if (count === 1) {
-                const skill = skills.find(s => s.id === skillId);
-                if (skill) {
-                    atRisk.push(skill);
-                }
-            }
-        });
-
-        return atRisk;
-    }, [employees, skills]);
-
     const { internalCost, externalCost, poolCost, totalCost } = useMemo(() => {
         const internal = employees.filter(e => e.employeeType === 'internal').reduce((sum, e) => sum + e.salary, 0);
         const external = employees.filter(e => e.employeeType === 'external').reduce((sum, e) => sum + e.salary, 0);
@@ -269,63 +190,6 @@ const OverallDashboardView: React.FC<{ data: AppData }> = ({ data }) => {
                 <StatCard icon={<ResourceTowerIcon />} title="Resource Towers" value={String(resourceTowers.length)} />
                 <StatCard icon={<TowerIcon />} title="Cost Pools" value={String(costPools.length)} />
             </div>
-
-            <Card>
-                 <div className="flex items-start gap-4 mb-4">
-                    <div className="p-2 rounded-full bg-indigo-100 dark:bg-indigo-900 text-indigo-600 dark:text-indigo-300 flex-shrink-0">
-                        <ShieldCheckIcon className="w-6 h-6" />
-                    </div>
-                    <div>
-                        <h3 className="text-xl font-bold text-slate-800 dark:text-slate-100">Organizational Health Checks</h3>
-                        <p className="text-sm text-slate-500 dark:text-slate-400">Review of service alignment and skill coverage risks.</p>
-                    </div>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-4 border-t border-slate-200 dark:border-slate-700 pt-4">
-                    {/* Service Catalog Health */}
-                    <HealthCheckSection
-                        title="Service Catalog"
-                        isHealthy={unassignedServices.length === 0 && sharedServices.length === 0}
-                    >
-                         {unassignedServices.length > 0 && (
-                            <div className="mt-2">
-                                <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Unassigned Services:</h5>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {unassignedServices.map(s => (
-                                        <li key={s.id} className="text-sm text-slate-600 dark:text-slate-300">{s.name}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                         {sharedServices.length > 0 && (
-                             <div className="mt-2">
-                                <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">Shared Services:</h5>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {sharedServices.map(s => (
-                                        <li key={s.id} className="text-sm text-slate-600 dark:text-slate-300">{s.name}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </HealthCheckSection>
-
-                     {/* Skill Coverage Health */}
-                    <HealthCheckSection
-                        title="Skill Coverage"
-                        isHealthy={atRiskSkills.length === 0}
-                    >
-                        {atRiskSkills.length > 0 && (
-                            <div className="mt-2">
-                                <h5 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-1">At-Risk Skills (Single Point of Failure):</h5>
-                                <ul className="list-disc list-inside space-y-1">
-                                    {atRiskSkills.map(s => (
-                                        <li key={s.id} className="text-sm text-slate-600 dark:text-slate-300">{s.name}</li>
-                                    ))}
-                                </ul>
-                            </div>
-                        )}
-                    </HealthCheckSection>
-                </div>
-            </Card>
 
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                 <Card className="lg:col-span-2">
