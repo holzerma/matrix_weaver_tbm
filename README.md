@@ -1,7 +1,6 @@
+# Fit-for-Value Modeller
 
-# Matrix Weaver TBM Edition
-
-**Matrix Weaver TBM Edition** is an interactive web application designed to model, manage, and visualize a matrix organization through the lens of Technology Business Management (TBM). It provides a clear, data-driven view of how resources (people and costs) are allocated across value-delivering solutions, helping leaders make informed strategic decisions.
+**Fit-for-Value Modeller** is an interactive web application designed to model, manage, and visualize a matrix organization through the lens of Technology Business Management (TBM). It provides a clear, data-driven view of how resources (people and costs) are allocated across value-delivering solutions, helping leaders make informed strategic decisions.
 
 The application comes pre-loaded with a comprehensive demo dataset based on the **official TBM 5.0.1 Taxonomy**, allowing users to immediately explore a realistic, standards-aligned organizational model.
 

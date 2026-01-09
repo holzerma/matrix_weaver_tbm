@@ -108,14 +108,51 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
     }, [employees, skills]);
 
     // --- Check 3: Fractured Focus (Context Switching) ---
-    // Logic: > 2 Functional Teams OR > 3 Value Streams
+    // Stricter Thresholds: 
+    // Red: > 5 Streams OR >= 2 Functional Teams
+    // Orange: > 3 Streams
     const fracturedEmployees = useMemo(() => {
-        return employees.filter(emp => {
+        const ftMap = new Map(functionalTeams.map(ft => [ft.id, ft]));
+
+        return employees.map(emp => {
             const ftCount = emp.functionalTeamIds ? emp.functionalTeamIds.length : 0;
-            const vsCount = emp.valueStreamIds ? emp.valueStreamIds.length : 0;
-            return ftCount > 2 || vsCount > 3;
-        });
-    }, [employees]);
+            const directVsIds = emp.valueStreamIds || [];
+            
+            // Calculate inherited VS IDs from Functional Teams
+            const inheritedVsIds = new Set<string>();
+            (emp.functionalTeamIds || []).forEach(ftId => {
+                const team = ftMap.get(ftId);
+                if (team && team.valueStreamIds) {
+                    team.valueStreamIds.forEach(vsId => inheritedVsIds.add(vsId));
+                }
+            });
+
+            // Combine sets
+            const allUniqueVsIds = new Set([...directVsIds, ...Array.from(inheritedVsIds)]);
+            const totalVsCount = allUniqueVsIds.size;
+
+            let severity: 'critical' | 'warning' | 'healthy' = 'healthy';
+
+            if (ftCount >= 2 || totalVsCount > 5) {
+                severity = 'critical';
+            } else if (totalVsCount > 3) {
+                severity = 'warning';
+            }
+
+            return {
+                ...emp,
+                severity,
+                metrics: {
+                    ftCount,
+                    totalVsCount,
+                    directVsCount: directVsIds.length,
+                    inheritedVsCount: inheritedVsIds.size, // Size of unique inherited
+                    uniqueInheritedOnly: Array.from(inheritedVsIds).filter(id => !directVsIds.includes(id)).length
+                }
+            };
+        }).filter(emp => emp.severity !== 'healthy')
+          .sort((a, b) => (a.severity === 'critical' ? -1 : 1)); // Critical first
+    }, [employees, functionalTeams]);
 
     // --- Check 4: External Dependency Risk ---
     const externalDependencyRisks = useMemo(() => {
@@ -139,8 +176,7 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
 
     // Helper maps for display
     const ftMap = useMemo(() => new Map(functionalTeams.map(ft => [ft.id, ft.name])), [functionalTeams]);
-    const vsMap = useMemo(() => new Map(valueStreams.map(vs => [vs.id, vs.name])), [valueStreams]);
-
+    
     return (
         <div className="space-y-6">
             <div className="flex items-center gap-3">
@@ -183,7 +219,7 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
                             <table className="min-w-full text-sm">
                                 <thead className="bg-slate-50 dark:bg-slate-800/50">
                                     <tr>
-                                        <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Solution</th>
+                                        <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Value Stream / Solution</th>
                                         <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">External Ratio</th>
                                         <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Composition (Ext / Total)</th>
                                     </tr>
@@ -216,7 +252,7 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
                 {/* Fractured Focus Check */}
                 <HealthCheckSection
                     title="Fractured Focus & Context Switching"
-                    description="Identifies employees suffering from high cognitive load due to being assigned to too many contexts (>2 Squads or >3 Solutions)."
+                    description="Identifies employees suffering from high cognitive load. Critical if assigned to ≥2 Functional Teams or >5 Value Streams. Warning if >3 Value Streams."
                     isHealthy={fracturedEmployees.length === 0}
                 >
                     {fracturedEmployees.length > 0 ? (
@@ -225,39 +261,59 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
                             <thead className="bg-slate-50 dark:bg-slate-800/50">
                                 <tr>
                                     <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Employee</th>
-                                    <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Squads (Limit: 2)</th>
-                                    <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Solutions (Limit: 3)</th>
+                                    <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Status</th>
+                                    <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Functional Teams (Limit: 1)</th>
+                                    <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Value Streams / Solutions (Limit: 3)</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
                                 {fracturedEmployees.map(emp => (
-                                    <tr key={emp.id}>
+                                    <tr key={emp.id} className={emp.severity === 'critical' ? 'bg-red-50/50 dark:bg-red-900/10' : ''}>
                                         <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200 flex items-center gap-2">
                                             <UsersIcon className="w-4 h-4 text-slate-400" />
                                             {emp.name}
                                         </td>
                                         <td className="px-4 py-2">
-                                            <div className="flex flex-wrap gap-1">
-                                                {(emp.functionalTeamIds?.length || 0) > 2 ? (
-                                                    <span className="text-red-600 font-bold mr-1">{(emp.functionalTeamIds?.length || 0)}</span>
-                                                ) : (
-                                                    <span className="text-slate-600 mr-1">{(emp.functionalTeamIds?.length || 0)}</span>
-                                                )}
-                                                {emp.functionalTeamIds?.map(id => (
-                                                    <span key={id} className="text-xs bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-500">{ftMap.get(id)}</span>
-                                                ))}
+                                            {emp.severity === 'critical' ? (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-200 uppercase">
+                                                    Critical
+                                                </span>
+                                            ) : (
+                                                <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 uppercase">
+                                                    Warning
+                                                </span>
+                                            )}
+                                        </td>
+                                        <td className="px-4 py-2">
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    {emp.metrics.ftCount >= 2 ? (
+                                                        <span className="text-red-600 dark:text-red-400 font-bold text-xs">{emp.metrics.ftCount} Functional Teams</span>
+                                                    ) : (
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs">{emp.metrics.ftCount} Functional Teams</span>
+                                                    )}
+                                                </div>
+                                                <div className="flex flex-wrap gap-1">
+                                                    {emp.functionalTeamIds?.map(id => (
+                                                        <span key={id} className="text-[10px] bg-white dark:bg-slate-700 px-1.5 rounded text-slate-500 border border-slate-200 dark:border-slate-600">{ftMap.get(id)}</span>
+                                                    ))}
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-4 py-2">
-                                            <div className="flex flex-wrap gap-1">
-                                                {emp.valueStreamIds.length > 3 ? (
-                                                    <span className="text-red-600 font-bold mr-1">{emp.valueStreamIds.length}</span>
-                                                ) : (
-                                                    <span className="text-slate-600 mr-1">{emp.valueStreamIds.length}</span>
-                                                )}
-                                                {emp.valueStreamIds.map(id => (
-                                                    <span key={id} className="text-xs bg-slate-100 dark:bg-slate-700 px-1.5 rounded text-slate-500">{vsMap.get(id)}</span>
-                                                ))}
+                                            <div className="flex flex-col gap-1">
+                                                <div className="flex items-center gap-2">
+                                                    {emp.metrics.totalVsCount > 5 ? (
+                                                        <span className="text-red-600 dark:text-red-400 font-bold text-xs">{emp.metrics.totalVsCount} Value Streams / Solutions</span>
+                                                    ) : emp.metrics.totalVsCount > 3 ? (
+                                                        <span className="text-amber-600 dark:text-amber-400 font-bold text-xs">{emp.metrics.totalVsCount} Value Streams / Solutions</span>
+                                                    ) : (
+                                                        <span className="text-slate-600 dark:text-slate-400 text-xs">{emp.metrics.totalVsCount} Value Streams / Solutions</span>
+                                                    )}
+                                                </div>
+                                                <p className="text-[10px] text-slate-400">
+                                                    {emp.metrics.directVsCount} Direct + {emp.metrics.uniqueInheritedOnly} Inherited
+                                                </p>
                                             </div>
                                         </td>
                                     </tr>
@@ -271,7 +327,7 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
                 {/* Service Catalog Check */}
                 <HealthCheckSection 
                     title="Service Catalog Hygiene"
-                    description="Ensures all defined services have an owner (Solution) and identifies potentially redundant shared services."
+                    description="Ensures all defined services have an owner (Value Stream / Solution) and identifies potentially redundant shared services."
                     isHealthy={unassignedServices.length === 0 && sharedServices.length === 0}
                 >
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

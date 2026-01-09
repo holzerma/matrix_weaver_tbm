@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect, useRef } from 'react';
 import { AppData, Employee, ValueStream, Competence, CostPool, ResourceTower, Skill, Service, FunctionalTeam, SolutionCategory, SolutionTypeDefinition } from '../types';
 import ChartBarIcon from './icons/ChartBarIcon';
@@ -273,7 +272,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                                 <path d="M14 5.25C9.16725 5.25 5.25 9.16725 5.25 14C5.25 18.8327 9.16725 22.75 14 22.75C18.8327 22.75 22.75 18.8327 22.75 14C22.75 9.16725 18.8327 5.25 14 5.25Z" fill="white" />
                                 <path d="M14 7C10.134 7 7 10.134 7 14C7 17.866 10.134 21 14 21C17.866 21 21 17.866 21 14C21 10.134 17.866 7 14 7Z" fill="currentColor" />
                             </svg>
-                            <span className="text-xl font-bold text-slate-800 dark:text-slate-100">Matrix Weaver TBM Edition</span>
+                            <span className="text-xl font-bold text-slate-800 dark:text-slate-100">Fit-for-Value Modeller</span>
                         </div>
                         <nav ref={menuRef} className="hidden md:flex items-center space-x-1">
                             {navItems.map(renderNavItem)}
@@ -386,7 +385,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
             <Modal isOpen={isUserGuideModalOpen} onClose={() => setIsUserGuideModalOpen(false)} title="User Guide">
                 <div className="text-slate-600 dark:text-slate-300 space-y-6 text-sm">
                     <div>
-                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 mb-2">Welcome to Matrix Weaver!</h3>
+                        <h3 className="font-bold text-lg text-slate-800 dark:text-slate-100 mb-2">Welcome to Fit-for-Value Modeller!</h3>
                         <p>This application helps you model your organization using Technology Business Management (TBM) principles. It shows how your people, costs, and technology resources all connect to deliver value.</p>
                     </div>
                     <div>
@@ -414,7 +413,7 @@ const Header: React.FC<HeaderProps> = ({ currentView, setView, appData, onSearch
                 </div>
             </Modal>
 
-            <Modal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} title="About Matrix Weaver TBM Edition">
+            <Modal isOpen={isAboutModalOpen} onClose={() => setIsAboutModalOpen(false)} title="About Fit-for-Value Modeller">
                 <div className="text-slate-600 dark:text-slate-300 space-y-4">
                     <p>
                         This application provides an interactive way to model, manage, and visualize a matrix organization based on Technology Business Management (TBM) principles. It helps highlight the connections between functional competences, employees, and the value-delivering solutions they contribute to.
