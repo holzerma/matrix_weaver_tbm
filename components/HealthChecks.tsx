@@ -108,9 +108,6 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
     }, [employees, skills]);
 
     // --- Check 3: Fractured Focus (Context Switching) ---
-    // Stricter Thresholds: 
-    // Red: > 5 Streams OR >= 2 Functional Teams
-    // Orange: > 3 Streams
     const fracturedEmployees = useMemo(() => {
         const ftMap = new Map(functionalTeams.map(ft => [ft.id, ft]));
 
@@ -174,6 +171,36 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
         return risks;
     }, [valueStreams, employees, externalThreshold]);
 
+    // --- Check 5: Role & Allocation Hygiene (New) ---
+    const roleRisks = useMemo(() => {
+        const risks: { employee: Employee, issues: string[] }[] = [];
+
+        employees.forEach(emp => {
+            const issues: string[] = [];
+
+            // 1. Line Manager Warning
+            if (emp.isLineManager) {
+                issues.push("Line Manager role detected (High Overhead Risk)");
+            }
+
+            // 2. Functional Manager AND Functional Team Member
+            if (emp.isFunctionalManager && emp.functionalTeamIds && emp.functionalTeamIds.length > 0) {
+                issues.push("Functional Manager assigned to Functional Team (Role Conflict)");
+            }
+
+            // 3. Hybrid Allocation: Team Assignment AND Direct Value Stream Assignment
+            if (emp.functionalTeamIds && emp.functionalTeamIds.length > 0 && emp.valueStreamIds && emp.valueStreamIds.length > 0) {
+                issues.push("Double Allocation: Assigned to Squad AND Directly to Value Stream");
+            }
+
+            if (issues.length > 0) {
+                risks.push({ employee: emp, issues });
+            }
+        });
+
+        return risks;
+    }, [employees]);
+
     // Helper maps for display
     const ftMap = useMemo(() => new Map(functionalTeams.map(ft => [ft.id, ft.name])), [functionalTeams]);
     
@@ -191,6 +218,48 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
 
             <div className="grid grid-cols-1 gap-6">
                 
+                {/* Role Checks (New) */}
+                <HealthCheckSection
+                    title="Role Checks & Allocation Hygiene"
+                    description="Detects potential role conflicts, management overhead, and allocation inconsistencies (e.g., mixed direct/team assignments)."
+                    isHealthy={roleRisks.length === 0}
+                >
+                    {roleRisks.length > 0 ? (
+                        <div className="overflow-x-auto">
+                            <table className="min-w-full text-sm">
+                                <thead className="bg-slate-50 dark:bg-slate-800/50">
+                                    <tr>
+                                        <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Employee</th>
+                                        <th className="px-4 py-2 text-left font-medium text-slate-500 dark:text-slate-400">Detected Issues</th>
+                                    </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-100 dark:divide-slate-700">
+                                    {roleRisks.map(({ employee, issues }) => (
+                                        <tr key={employee.id}>
+                                            <td className="px-4 py-2 font-medium text-slate-800 dark:text-slate-200 align-top">
+                                                <div className="flex items-center gap-2">
+                                                    <UsersIcon className="w-4 h-4 text-slate-400" />
+                                                    {employee.name}
+                                                </div>
+                                                <div className="text-xs text-slate-500 ml-6">{employee.role}</div>
+                                            </td>
+                                            <td className="px-4 py-2">
+                                                <ul className="list-disc list-inside space-y-1">
+                                                    {issues.map((issue, idx) => (
+                                                        <li key={idx} className="text-amber-700 dark:text-amber-400 text-xs">
+                                                            {issue}
+                                                        </li>
+                                                    ))}
+                                                </ul>
+                                            </td>
+                                        </tr>
+                                    ))}
+                                </tbody>
+                            </table>
+                        </div>
+                    ) : null}
+                </HealthCheckSection>
+
                 {/* Check 4: External Dependency Risk (New) */}
                 <HealthCheckSection
                     title="External Dependency Risk"
