@@ -7,6 +7,8 @@ import OrgChartIcon from './icons/OrgChartIcon';
 import UsersIcon from './icons/UsersIcon';
 import XCircleIcon from './icons/XCircleIcon';
 import FilterIcon from './icons/FilterIcon';
+import BriefcaseIcon from './icons/BriefcaseIcon';
+import ShieldCheckIcon from './icons/ShieldCheckIcon';
 
 type Position = { x: number; y: number; width: number; height: number };
 type Positions = Record<string, Position>;
@@ -270,7 +272,9 @@ const OrganizationView: React.FC<{ data: AppData }> = ({ data }) => {
                                                         >
                                                             <div className="flex items-center gap-2">
                                                                 <span className="text-sm font-medium text-slate-800 dark:text-slate-200">{emp.name}</span>
-                                                                {emp.isManager && <span title="Manager" className="text-amber-500"><UserStarIcon /></span>}
+                                                                {emp.isLineManager && <span title="Line Manager" className="text-amber-500"><UserStarIcon className="w-3 h-3" /></span>}
+                                                                {emp.isFunctionalManager && <span title="Functional Manager" className="text-indigo-500"><BriefcaseIcon className="w-3 h-3" /></span>}
+                                                                {emp.isSupportRole && <span title="Support Role" className="text-emerald-500"><ShieldCheckIcon className="w-3 h-3" /></span>}
                                                             </div>
                                                             <span className="text-xs text-slate-500 dark:text-slate-400">{emp.role}</span>
                                                         </div>

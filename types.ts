@@ -28,7 +28,10 @@ export interface Employee {
     valueStreamIds: string[];
     functionalTeamIds: string[]; // New field
     employeeType: 'internal' | 'external';
-    isManager: boolean;
+    // Granular Management Roles
+    isLineManager: boolean;
+    isFunctionalManager: boolean;
+    isSupportRole: boolean;
     skills: EmployeeSkill[];
 }
 

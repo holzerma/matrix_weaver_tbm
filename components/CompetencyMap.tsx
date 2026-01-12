@@ -107,8 +107,27 @@ const CompetencyMap: React.FC<CompetencyMapProps> = ({ data }) => {
                         {filteredEmployees.map(employee => (
                             <tr key={employee.id}>
                                 <td className="sticky left-0 bg-white dark:bg-slate-800 p-2 whitespace-nowrap z-10 w-48 border-r border-slate-200 dark:border-slate-700 align-top">
-                                    <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{employee.name}</div>
-                                    <div className="text-xs text-slate-500 dark:text-slate-400">{employee.role}</div>
+                                    <div className="flex flex-col gap-1">
+                                        <div className="text-sm font-medium text-slate-900 dark:text-slate-100">{employee.name}</div>
+                                        <div className="flex gap-1">
+                                            {employee.isLineManager && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 uppercase" title="Line Manager">
+                                                    LM
+                                                </span>
+                                            )}
+                                            {employee.isFunctionalManager && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200 uppercase" title="Functional Manager">
+                                                    FM
+                                                </span>
+                                            )}
+                                            {employee.isSupportRole && (
+                                                <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 uppercase" title="Support Role">
+                                                    SP
+                                                </span>
+                                            )}
+                                        </div>
+                                    </div>
+                                    <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">{employee.role}</div>
                                 </td>
                                 {filteredSkills.map(skill => {
                                     const proficiency = employeeSkillMap.get(employee.id)?.get(skill.id);

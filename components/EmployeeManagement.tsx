@@ -41,6 +41,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
     // Filtering & Sorting State
     const [searchTerm, setSearchTerm] = useState('');
     const [filterType, setFilterType] = useState('all');
+    const [filterRole, setFilterRole] = useState('all');
     const [filterCompetence, setFilterCompetence] = useState('all');
     const [filterValueStream, setFilterValueStream] = useState('all');
     const [filterFunctionalTeam, setFilterFunctionalTeam] = useState('all');
@@ -117,6 +118,17 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
         if (filterType !== 'all') {
             result = result.filter(e => e.employeeType === filterType);
         }
+        if (filterRole !== 'all') {
+            if (filterRole === 'lineManager') {
+                result = result.filter(e => e.isLineManager);
+            } else if (filterRole === 'functionalManager') {
+                result = result.filter(e => e.isFunctionalManager);
+            } else if (filterRole === 'supportRole') {
+                result = result.filter(e => e.isSupportRole);
+            } else if (filterRole === 'ic') {
+                result = result.filter(e => !e.isLineManager && !e.isFunctionalManager && !e.isSupportRole);
+            }
+        }
         if (filterCompetence !== 'all') {
             result = result.filter(e => e.competenceId === filterCompetence);
         }
@@ -154,7 +166,7 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
         }
 
         return result;
-    }, [employees, searchTerm, filterType, filterCompetence, filterValueStream, filterFunctionalTeam, sortConfig, competenceMap]);
+    }, [employees, searchTerm, filterType, filterRole, filterCompetence, filterValueStream, filterFunctionalTeam, sortConfig, competenceMap]);
 
     const SortIcon = ({ active, direction }: { active: boolean; direction: 'asc' | 'desc' }) => (
         <span className={`ml-1 inline-block transition-opacity ${active ? 'opacity-100' : 'opacity-20 hover:opacity-50'}`}>
@@ -196,6 +208,19 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                 <option value="all">All Types</option>
                                 <option value="internal">Internal</option>
                                 <option value="external">External</option>
+                            </select>
+                         </div>
+                         <div className="relative min-w-[180px]">
+                            <select
+                                value={filterRole}
+                                onChange={(e) => setFilterRole(e.target.value)}
+                                className="block w-full rounded-md border-slate-300 dark:border-slate-600 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 sm:text-sm py-2 pl-3 pr-10"
+                            >
+                                <option value="all">All Roles</option>
+                                <option value="lineManager">Line Managers</option>
+                                <option value="functionalManager">Functional Managers</option>
+                                <option value="supportRole">Support Roles</option>
+                                <option value="ic">Individual Contributors</option>
                             </select>
                          </div>
                          <div className="relative min-w-[200px]">
@@ -286,9 +311,25 @@ const EmployeeManagement: React.FC<EmployeeManagementProps> = ({ employees, comp
                                 processedEmployees.map(emp => (
                                 <tr key={emp.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
                                     <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-slate-900 dark:text-slate-100 align-top">
-                                        <div className="flex items-center gap-2">
+                                        <div className="flex flex-col gap-1">
                                             {emp.name}
-                                            {emp.isManager && <span title="Manager" className="text-amber-500 flex-shrink-0"><UserStarIcon /></span>}
+                                            <div className="flex gap-1">
+                                                {emp.isLineManager && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 dark:bg-amber-900/50 dark:text-amber-200 uppercase" title="Line Manager">
+                                                        LM
+                                                    </span>
+                                                )}
+                                                {emp.isFunctionalManager && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-100 text-indigo-800 dark:bg-indigo-900/50 dark:text-indigo-200 uppercase" title="Functional Manager">
+                                                        FM
+                                                    </span>
+                                                )}
+                                                {emp.isSupportRole && (
+                                                    <span className="inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 dark:bg-emerald-900/50 dark:text-emerald-200 uppercase" title="Support Role">
+                                                        SP
+                                                    </span>
+                                                )}
+                                            </div>
                                         </div>
                                     </td>
                                     <td className="px-6 py-4 whitespace-nowrap text-sm align-top">

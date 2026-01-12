@@ -23,7 +23,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, competences, valu
         valueStreamIds: [] as string[],
         functionalTeamIds: [] as string[],
         employeeType: 'internal' as 'internal' | 'external',
-        isManager: false,
+        isLineManager: false,
+        isFunctionalManager: false,
+        isSupportRole: false,
         skills: [] as EmployeeSkill[],
     });
     const [newSkillId, setNewSkillId] = useState('');
@@ -43,7 +45,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, competences, valu
                 valueStreamIds: employee.valueStreamIds,
                 functionalTeamIds: employee.functionalTeamIds || [],
                 employeeType: employee.employeeType,
-                isManager: employee.isManager || false,
+                isLineManager: employee.isLineManager || false,
+                isFunctionalManager: employee.isFunctionalManager || false,
+                isSupportRole: employee.isSupportRole || false,
                 skills: employee.skills || [],
             });
         } else {
@@ -55,7 +59,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, competences, valu
                 valueStreamIds: [],
                 functionalTeamIds: [],
                 employeeType: 'internal',
-                isManager: false,
+                isLineManager: false,
+                isFunctionalManager: false,
+                isSupportRole: false,
                 skills: [],
             });
         }
@@ -118,7 +124,9 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, competences, valu
             valueStreamIds: formData.valueStreamIds,
             functionalTeamIds: formData.functionalTeamIds,
             employeeType: formData.employeeType,
-            isManager: formData.isManager,
+            isLineManager: formData.isLineManager,
+            isFunctionalManager: formData.isFunctionalManager,
+            isSupportRole: formData.isSupportRole,
             skills: formData.skills,
         };
         onSave(finalEmployee);
@@ -278,19 +286,42 @@ const EmployeeForm: React.FC<EmployeeFormProps> = ({ employee, competences, valu
                  </div>
             </div>
 
-             <div className="flex items-center">
-                <input
-                    type="checkbox"
-                    name="isManager"
-                    id="isManager"
-                    checked={formData.isManager}
-                    onChange={handleChange}
-                    className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
-                />
-                <label htmlFor="isManager" className="ml-2 block text-sm text-slate-900 dark:text-slate-200">
-                    This employee is a manager
-                </label>
+             <div>
+                <label className={labelClasses}>Roles & Responsibilities</label>
+                <div className="mt-2 flex flex-wrap gap-4 p-3 bg-slate-50 dark:bg-slate-800/50 rounded-md border border-slate-200 dark:border-slate-700">
+                    <label className="flex items-center space-x-2 text-sm text-slate-900 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="isLineManager"
+                            checked={formData.isLineManager}
+                            onChange={handleChange}
+                            className="h-4 w-4 rounded border-slate-300 text-amber-600 focus:ring-amber-500"
+                        />
+                        <span>Line Manager</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-sm text-slate-900 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="isFunctionalManager"
+                            checked={formData.isFunctionalManager}
+                            onChange={handleChange}
+                            className="h-4 w-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-500"
+                        />
+                        <span>Functional Manager</span>
+                    </label>
+                    <label className="flex items-center space-x-2 text-sm text-slate-900 dark:text-slate-200">
+                        <input
+                            type="checkbox"
+                            name="isSupportRole"
+                            checked={formData.isSupportRole}
+                            onChange={handleChange}
+                            className="h-4 w-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        <span>Support Role</span>
+                    </label>
+                </div>
             </div>
+
             <div className="flex justify-end space-x-4 pt-4">
                 <button type="button" onClick={onCancel} className="px-4 py-2 bg-slate-200 text-slate-800 dark:bg-slate-600 dark:text-slate-100 rounded-md hover:bg-slate-300 dark:hover:bg-slate-500 transition-colors">
                     Cancel

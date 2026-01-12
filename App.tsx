@@ -101,9 +101,13 @@ const App: React.FC = () => {
 
     const handleImport = (data: AppData) => {
         // Migration: Ensure employees have functionalTeamIds array if missing
-        const migratedEmployees = (data.employees || []).map(emp => ({
+        // Migration 2: Map old 'isManager' boolean to 'isLineManager' for backward compatibility
+        const migratedEmployees = (data.employees || []).map((emp: any) => ({
             ...emp,
-            functionalTeamIds: emp.functionalTeamIds || []
+            functionalTeamIds: emp.functionalTeamIds || [],
+            isLineManager: emp.isLineManager !== undefined ? emp.isLineManager : (emp.isManager || false),
+            isFunctionalManager: emp.isFunctionalManager || false,
+            isSupportRole: emp.isSupportRole || false
         }));
         setEmployees(migratedEmployees);
 
@@ -141,9 +145,9 @@ const App: React.FC = () => {
             
             // If team has no connections, infer them from members
             if (vsIds.length === 0) {
-                const teamMembers = migratedEmployees.filter(e => e.functionalTeamIds && e.functionalTeamIds.includes(ft.id));
+                const teamMembers = migratedEmployees.filter((e: Employee) => e.functionalTeamIds && e.functionalTeamIds.includes(ft.id));
                 const uniqueVsIds = new Set<string>();
-                teamMembers.forEach(e => {
+                teamMembers.forEach((e: Employee) => {
                     (e.valueStreamIds || []).forEach(vsId => uniqueVsIds.add(vsId));
                 });
                 vsIds = Array.from(uniqueVsIds);

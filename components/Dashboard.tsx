@@ -280,8 +280,9 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
     const metrics = useMemo(() => {
         const salaryCost = members.reduce((sum, m) => sum + (m.salary / (m.valueStreamIds.length || 1)), 0);
         const poolCost = valueStream.costPoolConsumption.reduce((sum, cpc) => sum + cpc.annualCost, 0);
-        const managers = members.filter(m => m.isManager).length;
-        const nonManagers = members.length - managers;
+        // Using Line Manager for "Manager" stats
+        const lineManagers = members.filter(m => m.isLineManager).length;
+        const nonLineManagers = members.length - lineManagers;
         const internal = members.filter(m => m.employeeType === 'internal').length;
         const external = members.length - internal;
 
@@ -297,9 +298,9 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
             salaryCost,
             poolCost,
             totalCost: salaryCost + poolCost,
-            managerRatio: `${managers} / ${nonManagers}`,
+            managerRatio: `${lineManagers} / ${nonLineManagers}`,
             intExtRatio: `${internal} / ${external}`,
-            managers, nonManagers, internal, external,
+            lineManagers, nonLineManagers, internal, external,
             sourceCostBreakdown,
         };
     }, [valueStream, members, costPoolMap]);
@@ -338,7 +339,7 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard icon={<UsersIcon />} title="Total Cost" value={formatCurrency(metrics.totalCost)} />
                 <StatCard icon={<UsersIcon />} title="# Employees" value={String(members.length)} />
-                <StatCard icon={<UserStarIcon className="w-6 h-6"/>} title="Manager Ratio (M/NM)" value={metrics.managerRatio} />
+                <StatCard icon={<UserStarIcon className="w-6 h-6"/>} title="Line Mgr Ratio (M/NM)" value={metrics.managerRatio} />
                 <StatCard icon={<UsersIcon />} title="Int/Ext Ratio" value={metrics.intExtRatio} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
@@ -408,7 +409,11 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
                                     <div className="flex items-center gap-2">
                                         <p className="font-semibold text-slate-800 dark:text-slate-200">
                                             {m.name}
-                                            {m.isManager && <span title="Manager" className="text-amber-500 inline-block align-middle ml-1"><UserStarIcon /></span>}
+                                            <span className="flex gap-1 ml-1">
+                                                {m.isLineManager && <span title="Line Manager" className="text-amber-600 dark:text-amber-400 font-bold text-xs bg-amber-100 dark:bg-amber-900/50 px-1 rounded">LM</span>}
+                                                {m.isFunctionalManager && <span title="Functional Manager" className="text-indigo-600 dark:text-indigo-400 font-bold text-xs bg-indigo-100 dark:bg-indigo-900/50 px-1 rounded">FM</span>}
+                                                {m.isSupportRole && <span title="Support Role" className="text-emerald-600 dark:text-emerald-400 font-bold text-xs bg-emerald-100 dark:bg-emerald-900/50 px-1 rounded">SP</span>}
+                                            </span>
                                         </p>
                                         <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${m.employeeType === 'internal' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'}`}>
                                             {m.employeeType}
@@ -519,7 +524,7 @@ const CompetenceDetailView: React.FC<CompetenceDetailViewProps> = ({ competence,
                                     <div className="flex items-center gap-2">
                                         <p className="font-semibold text-slate-800 dark:text-slate-200">
                                             {m.name}
-                                            {m.isManager && <span title="Manager" className="text-amber-500 inline-block align-middle ml-1"><UserStarIcon /></span>}
+                                            {m.isLineManager && <span title="Line Manager" className="text-amber-500 inline-block align-middle ml-1"><UserStarIcon /></span>}
                                         </p>
                                         <span className={`px-2 py-0.5 text-[10px] font-bold uppercase rounded-full ${m.employeeType === 'internal' ? 'bg-sky-100 text-sky-800 dark:bg-sky-900 dark:text-sky-200' : 'bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-200'}`}>
                                             {m.employeeType}
