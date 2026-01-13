@@ -280,9 +280,13 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
     const metrics = useMemo(() => {
         const salaryCost = members.reduce((sum, m) => sum + (m.salary / (m.valueStreamIds.length || 1)), 0);
         const poolCost = valueStream.costPoolConsumption.reduce((sum, cpc) => sum + cpc.annualCost, 0);
-        // Using Line Manager for "Manager" stats
-        const lineManagers = members.filter(m => m.isLineManager).length;
-        const nonLineManagers = members.length - lineManagers;
+        
+        // Calculate Management Ratio: 
+        // Managers = Line Managers OR Functional Managers
+        // Non-Managers (IC) = Everyone else (including Support roles unless they are also marked as managers)
+        const managerCount = members.filter(m => m.isLineManager || m.isFunctionalManager).length;
+        const individualContributors = members.length - managerCount;
+        
         const internal = members.filter(m => m.employeeType === 'internal').length;
         const external = members.length - internal;
 
@@ -298,9 +302,9 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
             salaryCost,
             poolCost,
             totalCost: salaryCost + poolCost,
-            managerRatio: `${lineManagers} / ${nonLineManagers}`,
+            managerRatio: `${managerCount} / ${individualContributors}`,
             intExtRatio: `${internal} / ${external}`,
-            lineManagers, nonLineManagers, internal, external,
+            managerCount, individualContributors, internal, external,
             sourceCostBreakdown,
         };
     }, [valueStream, members, costPoolMap]);
@@ -339,7 +343,7 @@ const ValueStreamDetailView: React.FC<ValueStreamDetailViewProps> = ({ valueStre
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <StatCard icon={<UsersIcon />} title="Total Cost" value={formatCurrency(metrics.totalCost)} />
                 <StatCard icon={<UsersIcon />} title="# Employees" value={String(members.length)} />
-                <StatCard icon={<UserStarIcon className="w-6 h-6"/>} title="Line Mgr Ratio (M/NM)" value={metrics.managerRatio} />
+                <StatCard icon={<UserStarIcon className="w-6 h-6"/>} title="Mgmt Ratio (Mgr / IC)" value={metrics.managerRatio} />
                 <StatCard icon={<UsersIcon />} title="Int/Ext Ratio" value={metrics.intExtRatio} />
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

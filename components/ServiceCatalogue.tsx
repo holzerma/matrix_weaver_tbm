@@ -216,7 +216,7 @@ const TypeSection: React.FC<{
                             const people = getVsKeyPeople(vs);
                             people.forEach(p => {
                                 if (!empVsMap.has(p.id)) {
-                                    empVsMap.set(p.id, new Set());
+                                    empVsMap.set(p.id, new Set<string>());
                                 }
                                 empVsMap.get(p.id)!.add(vs.id);
                             });

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { AppData, Skill, Service, Employee } from '../types';
+import { AppData, Skill, Service, Employee, FunctionalTeam } from '../types';
 import Card from './common/Card';
 import ShieldCheckIcon from './icons/ShieldCheckIcon';
 import AlertTriangleIcon from './icons/AlertTriangleIcon';
@@ -109,7 +109,7 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
 
     // --- Check 3: Fractured Focus (Context Switching) ---
     const fracturedEmployees = useMemo(() => {
-        const ftMap = new Map(functionalTeams.map(ft => [ft.id, ft]));
+        const ftMap = new Map<string, FunctionalTeam>(functionalTeams.map(ft => [ft.id, ft] as [string, FunctionalTeam]));
 
         return employees.map(emp => {
             const ftCount = emp.functionalTeamIds ? emp.functionalTeamIds.length : 0;
@@ -171,7 +171,7 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
         return risks;
     }, [valueStreams, employees, externalThreshold]);
 
-    // --- Check 5: Role & Allocation Hygiene (New) ---
+    // --- Check 5: Role & Allocation Hygiene ---
     const roleRisks = useMemo(() => {
         const risks: { employee: Employee, issues: string[] }[] = [];
 
@@ -201,6 +201,12 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
         return risks;
     }, [employees]);
 
+    // --- Check 6: Service Exposure Hygiene (New) ---
+    const serviceExposureRisks = useMemo(() => {
+        // Find Value Streams that have NO services linked to them
+        return valueStreams.filter(vs => !vs.serviceIds || vs.serviceIds.length === 0);
+    }, [valueStreams]);
+
     // Helper maps for display
     const ftMap = useMemo(() => new Map(functionalTeams.map(ft => [ft.id, ft.name])), [functionalTeams]);
     
@@ -218,7 +224,30 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
 
             <div className="grid grid-cols-1 gap-6">
                 
-                {/* Role Checks (New) */}
+                {/* Service Exposure Hygiene (New) */}
+                <HealthCheckSection
+                    title="Service Exposure Hygiene"
+                    description="Identifies Value Streams or Solutions that do not expose any Services (Offerings) to the business or other teams."
+                    isHealthy={serviceExposureRisks.length === 0}
+                >
+                    {serviceExposureRisks.length > 0 ? (
+                        <div>
+                            <div className="mb-2 text-sm text-slate-600 dark:text-slate-400">
+                                The following solutions are consuming resources but offer no defined services in the catalog ("Black Boxes"):
+                            </div>
+                            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+                                {serviceExposureRisks.map(vs => (
+                                    <div key={vs.id} className="p-3 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 rounded-md">
+                                        <p className="font-bold text-slate-800 dark:text-slate-200 text-sm">{vs.name}</p>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate">{vs.description}</p>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                    ) : null}
+                </HealthCheckSection>
+
+                {/* Role Checks */}
                 <HealthCheckSection
                     title="Role Checks & Allocation Hygiene"
                     description="Detects potential role conflicts, management overhead, and allocation inconsistencies (e.g., mixed direct/team assignments)."
@@ -260,7 +289,7 @@ const HealthChecks: React.FC<HealthChecksProps> = ({ data }) => {
                     ) : null}
                 </HealthCheckSection>
 
-                {/* Check 4: External Dependency Risk (New) */}
+                {/* Check 4: External Dependency Risk */}
                 <HealthCheckSection
                     title="External Dependency Risk"
                     description="Flags solutions with a high reliance on external contractors, posing potential IP retention and knowledge transfer risks."
